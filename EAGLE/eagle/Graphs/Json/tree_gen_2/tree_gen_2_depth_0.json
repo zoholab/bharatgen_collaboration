@@ -1,0 +1,93 @@
+{
+    "directed": true,
+    "multigraph": false,
+    "graph": {},
+    "nodes": [
+        {
+            "label": " has",
+            "id": 0
+        },
+        {
+            "label": " the",
+            "id": 1
+        },
+        {
+            "label": " global",
+            "id": 2
+        },
+        {
+            "label": " significant",
+            "id": 3
+        },
+        {
+            "label": " worldwide",
+            "id": 4
+        },
+        {
+            "label": " grave",
+            "id": 5
+        },
+        {
+            "label": " a",
+            "id": 6
+        },
+        {
+            "label": " alarming",
+            "id": 7
+        },
+        {
+            "label": " globally",
+            "id": 8
+        },
+        {
+            "label": " far",
+            "id": 9
+        },
+        {
+            "label": " globally",
+            "id": 10
+        }
+    ],
+    "links": [
+        {
+            "source": 0,
+            "target": 1
+        },
+        {
+            "source": 0,
+            "target": 2
+        },
+        {
+            "source": 0,
+            "target": 3
+        },
+        {
+            "source": 0,
+            "target": 4
+        },
+        {
+            "source": 0,
+            "target": 5
+        },
+        {
+            "source": 0,
+            "target": 6
+        },
+        {
+            "source": 0,
+            "target": 7
+        },
+        {
+            "source": 0,
+            "target": 8
+        },
+        {
+            "source": 0,
+            "target": 9
+        },
+        {
+            "source": 0,
+            "target": 10
+        }
+    ]
+}

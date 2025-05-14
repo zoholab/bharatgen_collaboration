@@ -1,0 +1,173 @@
+{
+    "directed": true,
+    "multigraph": false,
+    "graph": {},
+    "nodes": [
+        {
+            "label": " Def",
+            "id": 0
+        },
+        {
+            "label": "orest",
+            "id": 1
+        },
+        {
+            "label": "ores",
+            "id": 2
+        },
+        {
+            "label": " forests",
+            "id": 3
+        },
+        {
+            "label": " Forest",
+            "id": 4
+        },
+        {
+            "label": " forest",
+            "id": 5
+        },
+        {
+            "label": "ore",
+            "id": 6
+        },
+        {
+            "label": "estation",
+            "id": 7
+        },
+        {
+            "label": "rees",
+            "id": 8
+        },
+        {
+            "label": " Trees",
+            "id": 9
+        },
+        {
+            "label": " is",
+            "id": 10
+        },
+        {
+            "label": " involves",
+            "id": 11
+        },
+        {
+            "label": " refers",
+            "id": 12
+        },
+        {
+            "label": " occurs",
+            "id": 13
+        },
+        {
+            "label": " affects",
+            "id": 14
+        },
+        {
+            "label": ",",
+            "id": 15
+        },
+        {
+            "label": " can",
+            "id": 16
+        },
+        {
+            "label": " has",
+            "id": 17
+        },
+        {
+            "label": " encompasses",
+            "id": 18
+        },
+        {
+            "label": " poses",
+            "id": 19
+        },
+        {
+            "label": " is",
+            "id": 20
+        }
+    ],
+    "links": [
+        {
+            "source": 0,
+            "target": 1
+        },
+        {
+            "source": 0,
+            "target": 2
+        },
+        {
+            "source": 0,
+            "target": 3
+        },
+        {
+            "source": 0,
+            "target": 4
+        },
+        {
+            "source": 0,
+            "target": 5
+        },
+        {
+            "source": 0,
+            "target": 6
+        },
+        {
+            "source": 0,
+            "target": 7
+        },
+        {
+            "source": 0,
+            "target": 8
+        },
+        {
+            "source": 0,
+            "target": 9
+        },
+        {
+            "source": 0,
+            "target": 10
+        },
+        {
+            "source": 1,
+            "target": 11
+        },
+        {
+            "source": 1,
+            "target": 12
+        },
+        {
+            "source": 1,
+            "target": 13
+        },
+        {
+            "source": 1,
+            "target": 14
+        },
+        {
+            "source": 1,
+            "target": 15
+        },
+        {
+            "source": 1,
+            "target": 16
+        },
+        {
+            "source": 1,
+            "target": 17
+        },
+        {
+            "source": 1,
+            "target": 18
+        },
+        {
+            "source": 1,
+            "target": 19
+        },
+        {
+            "source": 1,
+            "target": 20
+        }
+    ]
+}

@@ -1,0 +1,413 @@
+{
+    "directed": true,
+    "multigraph": false,
+    "graph": {},
+    "nodes": [
+        {
+            "label": ".",
+            "id": 0
+        },
+        {
+            "label": " As",
+            "id": 1
+        },
+        {
+            "label": " Here",
+            "id": 2
+        },
+        {
+            "label": " I",
+            "id": 3
+        },
+        {
+            "label": " In",
+            "id": 4
+        },
+        {
+            "label": " A",
+            "id": 5
+        },
+        {
+            "label": " It",
+            "id": 6
+        },
+        {
+            "label": " Some",
+            "id": 7
+        },
+        {
+            "label": " According",
+            "id": 8
+        },
+        {
+            "label": " On",
+            "id": 9
+        },
+        {
+            "label": " human",
+            "id": 10
+        },
+        {
+            "label": " the",
+            "id": 21
+        },
+        {
+            "label": "...\n",
+            "id": 31
+        },
+        {
+            "label": "...\n",
+            "id": 11
+        },
+        {
+            "label": "...\n",
+            "id": 12
+        },
+        {
+            "label": " are",
+            "id": 32
+        },
+        {
+            "label": " human",
+            "id": 22
+        },
+        {
+            "label": " can",
+            "id": 71
+        },
+        {
+            "label": " AI",
+            "id": 13
+        },
+        {
+            "label": " is",
+            "id": 33
+        },
+        {
+            "label": "...\n",
+            "id": 34
+        },
+        {
+            "label": " can",
+            "id": 131
+        },
+        {
+            "label": "...\n",
+            "id": 111
+        },
+        {
+            "label": "Human",
+            "id": 141
+        },
+        {
+            "label": " a",
+            "id": 121
+        },
+        {
+            "label": " global",
+            "id": 112
+        },
+        {
+            "label": " sustainable",
+            "id": 113
+        },
+        {
+            "label": " environmental",
+            "id": 161
+        },
+        {
+            "label": "...",
+            "id": 114
+        },
+        {
+            "label": "Human",
+            "id": 181
+        },
+        {
+            "label": " has",
+            "id": 132
+        },
+        {
+            "label": ".",
+            "id": 231
+        },
+        {
+            "label": " and",
+            "id": 221
+        },
+        {
+            "label": ".",
+            "id": 291
+        },
+        {
+            "label": "'s",
+            "id": 222
+        },
+        {
+            "label": ",",
+            "id": 271
+        },
+        {
+            "label": "...\n",
+            "id": 223
+        },
+        {
+            "label": "Human",
+            "id": 251
+        },
+        {
+            "label": " and",
+            "id": 272
+        },
+        {
+            "label": " conservation",
+            "id": 261
+        },
+        {
+            "label": "...\n",
+            "id": 211
+        },
+        {
+            "label": ".",
+            "id": 371
+        },
+        {
+            "label": " biodiversity",
+            "id": 321
+        },
+        {
+            "label": " and",
+            "id": 351
+        },
+        {
+            "label": " Artificial",
+            "id": 311
+        },
+        {
+            "label": " Human",
+            "id": 312
+        },
+        {
+            "label": " Climate",
+            "id": 313
+        },
+        {
+            "label": " The",
+            "id": 314
+        },
+        {
+            "label": " Artificial",
+            "id": 331
+        },
+        {
+            "label": " Deep",
+            "id": 315
+        },
+        {
+            "label": " Human",
+            "id": 332
+        }
+    ],
+    "links": [
+        {
+            "source": 0,
+            "target": 1
+        },
+        {
+            "source": 0,
+            "target": 2
+        },
+        {
+            "source": 0,
+            "target": 3
+        },
+        {
+            "source": 0,
+            "target": 4
+        },
+        {
+            "source": 0,
+            "target": 5
+        },
+        {
+            "source": 0,
+            "target": 6
+        },
+        {
+            "source": 0,
+            "target": 7
+        },
+        {
+            "source": 0,
+            "target": 8
+        },
+        {
+            "source": 0,
+            "target": 9
+        },
+        {
+            "source": 0,
+            "target": 10
+        },
+        {
+            "source": 1,
+            "target": 11
+        },
+        {
+            "source": 1,
+            "target": 12
+        },
+        {
+            "source": 1,
+            "target": 13
+        },
+        {
+            "source": 2,
+            "target": 21
+        },
+        {
+            "source": 2,
+            "target": 22
+        },
+        {
+            "source": 3,
+            "target": 31
+        },
+        {
+            "source": 3,
+            "target": 32
+        },
+        {
+            "source": 3,
+            "target": 33
+        },
+        {
+            "source": 3,
+            "target": 34
+        },
+        {
+            "source": 7,
+            "target": 71
+        },
+        {
+            "source": 21,
+            "target": 111
+        },
+        {
+            "source": 21,
+            "target": 112
+        },
+        {
+            "source": 21,
+            "target": 113
+        },
+        {
+            "source": 21,
+            "target": 114
+        },
+        {
+            "source": 31,
+            "target": 121
+        },
+        {
+            "source": 11,
+            "target": 131
+        },
+        {
+            "source": 11,
+            "target": 132
+        },
+        {
+            "source": 12,
+            "target": 141
+        },
+        {
+            "source": 22,
+            "target": 161
+        },
+        {
+            "source": 13,
+            "target": 181
+        },
+        {
+            "source": 131,
+            "target": 211
+        },
+        {
+            "source": 111,
+            "target": 221
+        },
+        {
+            "source": 111,
+            "target": 222
+        },
+        {
+            "source": 111,
+            "target": 223
+        },
+        {
+            "source": 141,
+            "target": 231
+        },
+        {
+            "source": 112,
+            "target": 251
+        },
+        {
+            "source": 113,
+            "target": 261
+        },
+        {
+            "source": 161,
+            "target": 271
+        },
+        {
+            "source": 161,
+            "target": 272
+        },
+        {
+            "source": 181,
+            "target": 291
+        },
+        {
+            "source": 231,
+            "target": 311
+        },
+        {
+            "source": 231,
+            "target": 312
+        },
+        {
+            "source": 231,
+            "target": 313
+        },
+        {
+            "source": 231,
+            "target": 314
+        },
+        {
+            "source": 231,
+            "target": 315
+        },
+        {
+            "source": 221,
+            "target": 321
+        },
+        {
+            "source": 291,
+            "target": 331
+        },
+        {
+            "source": 291,
+            "target": 332
+        },
+        {
+            "source": 271,
+            "target": 351
+        },
+        {
+            "source": 251,
+            "target": 371
+        }
+    ]
+}

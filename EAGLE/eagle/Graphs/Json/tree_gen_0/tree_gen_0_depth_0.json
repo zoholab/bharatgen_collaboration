@@ -1,0 +1,93 @@
+{
+    "directed": true,
+    "multigraph": false,
+    "graph": {},
+    "nodes": [
+        {
+            "label": " Def",
+            "id": 0
+        },
+        {
+            "label": "ection",
+            "id": 1
+        },
+        {
+            "label": "orest",
+            "id": 2
+        },
+        {
+            "label": "lection",
+            "id": 3
+        },
+        {
+            "label": "raction",
+            "id": 4
+        },
+        {
+            "label": "lation",
+            "id": 5
+        },
+        {
+            "label": "ra",
+            "id": 6
+        },
+        {
+            "label": "eat",
+            "id": 7
+        },
+        {
+            "label": "r",
+            "id": 8
+        },
+        {
+            "label": "ragment",
+            "id": 9
+        },
+        {
+            "label": " is",
+            "id": 10
+        }
+    ],
+    "links": [
+        {
+            "source": 0,
+            "target": 1
+        },
+        {
+            "source": 0,
+            "target": 2
+        },
+        {
+            "source": 0,
+            "target": 3
+        },
+        {
+            "source": 0,
+            "target": 4
+        },
+        {
+            "source": 0,
+            "target": 5
+        },
+        {
+            "source": 0,
+            "target": 6
+        },
+        {
+            "source": 0,
+            "target": 7
+        },
+        {
+            "source": 0,
+            "target": 8
+        },
+        {
+            "source": 0,
+            "target": 9
+        },
+        {
+            "source": 0,
+            "target": 10
+        }
+    ]
+}

@@ -1,0 +1,253 @@
+{
+    "directed": true,
+    "multigraph": false,
+    "graph": {},
+    "nodes": [
+        {
+            "label": " Def",
+            "id": 0
+        },
+        {
+            "label": "ection",
+            "id": 1
+        },
+        {
+            "label": "orest",
+            "id": 2
+        },
+        {
+            "label": "lection",
+            "id": 3
+        },
+        {
+            "label": "raction",
+            "id": 4
+        },
+        {
+            "label": "lation",
+            "id": 5
+        },
+        {
+            "label": "ra",
+            "id": 6
+        },
+        {
+            "label": "eat",
+            "id": 7
+        },
+        {
+            "label": "r",
+            "id": 8
+        },
+        {
+            "label": "ragment",
+            "id": 9
+        },
+        {
+            "label": " is",
+            "id": 10
+        },
+        {
+            "label": ",",
+            "id": 11
+        },
+        {
+            "label": " has",
+            "id": 12
+        },
+        {
+            "label": "!",
+            "id": 13
+        },
+        {
+            "label": " can",
+            "id": 14
+        },
+        {
+            "label": " as",
+            "id": 15
+        },
+        {
+            "label": " refers",
+            "id": 16
+        },
+        {
+            "label": ",",
+            "id": 21
+        },
+        {
+            "label": " concerns",
+            "id": 17
+        },
+        {
+            "label": ",",
+            "id": 31
+        },
+        {
+            "label": " represents",
+            "id": 18
+        },
+        {
+            "label": " the",
+            "id": 111
+        },
+        {
+            "label": ",",
+            "id": 112
+        },
+        {
+            "label": "...",
+            "id": 113
+        },
+        {
+            "label": " an",
+            "id": 114
+        },
+        {
+            "label": "!",
+            "id": 115
+        },
+        {
+            "label": " AI",
+            "id": 116
+        },
+        {
+            "label": "...\n",
+            "id": 117
+        },
+        {
+            "label": "\u2026",
+            "id": 118
+        },
+        {
+            "label": " a",
+            "id": 121
+        },
+        {
+            "label": " as",
+            "id": 122
+        }
+    ],
+    "links": [
+        {
+            "source": 0,
+            "target": 1
+        },
+        {
+            "source": 0,
+            "target": 2
+        },
+        {
+            "source": 0,
+            "target": 3
+        },
+        {
+            "source": 0,
+            "target": 4
+        },
+        {
+            "source": 0,
+            "target": 5
+        },
+        {
+            "source": 0,
+            "target": 6
+        },
+        {
+            "source": 0,
+            "target": 7
+        },
+        {
+            "source": 0,
+            "target": 8
+        },
+        {
+            "source": 0,
+            "target": 9
+        },
+        {
+            "source": 0,
+            "target": 10
+        },
+        {
+            "source": 1,
+            "target": 11
+        },
+        {
+            "source": 1,
+            "target": 12
+        },
+        {
+            "source": 1,
+            "target": 13
+        },
+        {
+            "source": 1,
+            "target": 14
+        },
+        {
+            "source": 1,
+            "target": 15
+        },
+        {
+            "source": 1,
+            "target": 16
+        },
+        {
+            "source": 1,
+            "target": 17
+        },
+        {
+            "source": 1,
+            "target": 18
+        },
+        {
+            "source": 2,
+            "target": 21
+        },
+        {
+            "source": 3,
+            "target": 31
+        },
+        {
+            "source": 11,
+            "target": 111
+        },
+        {
+            "source": 11,
+            "target": 112
+        },
+        {
+            "source": 11,
+            "target": 113
+        },
+        {
+            "source": 11,
+            "target": 114
+        },
+        {
+            "source": 11,
+            "target": 115
+        },
+        {
+            "source": 11,
+            "target": 116
+        },
+        {
+            "source": 11,
+            "target": 117
+        },
+        {
+            "source": 11,
+            "target": 118
+        },
+        {
+            "source": 12,
+            "target": 121
+        },
+        {
+            "source": 12,
+            "target": 122
+        }
+    ]
+}

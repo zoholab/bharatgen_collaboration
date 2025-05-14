@@ -1,0 +1,93 @@
+{
+    "directed": true,
+    "multigraph": false,
+    "graph": {},
+    "nodes": [
+        {
+            "label": " our",
+            "id": 0
+        },
+        {
+            "label": " biodiversity",
+            "id": 1
+        },
+        {
+            "label": " planet",
+            "id": 2
+        },
+        {
+            "label": " ecosystem",
+            "id": 3
+        },
+        {
+            "label": ",",
+            "id": 4
+        },
+        {
+            "label": " human",
+            "id": 5
+        },
+        {
+            "label": " and",
+            "id": 6
+        },
+        {
+            "label": " habitats",
+            "id": 7
+        },
+        {
+            "label": " global",
+            "id": 8
+        },
+        {
+            "label": " wildlife",
+            "id": 9
+        },
+        {
+            "label": ",",
+            "id": 10
+        }
+    ],
+    "links": [
+        {
+            "source": 0,
+            "target": 1
+        },
+        {
+            "source": 0,
+            "target": 2
+        },
+        {
+            "source": 0,
+            "target": 3
+        },
+        {
+            "source": 0,
+            "target": 4
+        },
+        {
+            "source": 0,
+            "target": 5
+        },
+        {
+            "source": 0,
+            "target": 6
+        },
+        {
+            "source": 0,
+            "target": 7
+        },
+        {
+            "source": 0,
+            "target": 8
+        },
+        {
+            "source": 0,
+            "target": 9
+        },
+        {
+            "source": 0,
+            "target": 10
+        }
+    ]
+}

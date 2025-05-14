@@ -1,0 +1,93 @@
+{
+    "directed": true,
+    "multigraph": false,
+    "graph": {},
+    "nodes": [
+        {
+            "label": ".",
+            "id": 0
+        },
+        {
+            "label": " As",
+            "id": 1
+        },
+        {
+            "label": " Here",
+            "id": 2
+        },
+        {
+            "label": " I",
+            "id": 3
+        },
+        {
+            "label": " In",
+            "id": 4
+        },
+        {
+            "label": " A",
+            "id": 5
+        },
+        {
+            "label": " It",
+            "id": 6
+        },
+        {
+            "label": " Some",
+            "id": 7
+        },
+        {
+            "label": " According",
+            "id": 8
+        },
+        {
+            "label": " On",
+            "id": 9
+        },
+        {
+            "label": " human",
+            "id": 10
+        }
+    ],
+    "links": [
+        {
+            "source": 0,
+            "target": 1
+        },
+        {
+            "source": 0,
+            "target": 2
+        },
+        {
+            "source": 0,
+            "target": 3
+        },
+        {
+            "source": 0,
+            "target": 4
+        },
+        {
+            "source": 0,
+            "target": 5
+        },
+        {
+            "source": 0,
+            "target": 6
+        },
+        {
+            "source": 0,
+            "target": 7
+        },
+        {
+            "source": 0,
+            "target": 8
+        },
+        {
+            "source": 0,
+            "target": 9
+        },
+        {
+            "source": 0,
+            "target": 10
+        }
+    ]
+}

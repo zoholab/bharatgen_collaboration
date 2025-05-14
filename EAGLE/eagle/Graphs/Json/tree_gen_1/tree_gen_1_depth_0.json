@@ -1,0 +1,93 @@
+{
+    "directed": true,
+    "multigraph": false,
+    "graph": {},
+    "nodes": [
+        {
+            "label": " significant",
+            "id": 0
+        },
+        {
+            "label": " topic",
+            "id": 1
+        },
+        {
+            "label": " concern",
+            "id": 2
+        },
+        {
+            "label": " global",
+            "id": 3
+        },
+        {
+            "label": " and",
+            "id": 4
+        },
+        {
+            "label": " human",
+            "id": 5
+        },
+        {
+            "label": " environmental",
+            "id": 6
+        },
+        {
+            "label": " pressing",
+            "id": 7
+        },
+        {
+            "label": " problem",
+            "id": 8
+        },
+        {
+            "label": " threat",
+            "id": 9
+        },
+        {
+            "label": " that",
+            "id": 10
+        }
+    ],
+    "links": [
+        {
+            "source": 0,
+            "target": 1
+        },
+        {
+            "source": 0,
+            "target": 2
+        },
+        {
+            "source": 0,
+            "target": 3
+        },
+        {
+            "source": 0,
+            "target": 4
+        },
+        {
+            "source": 0,
+            "target": 5
+        },
+        {
+            "source": 0,
+            "target": 6
+        },
+        {
+            "source": 0,
+            "target": 7
+        },
+        {
+            "source": 0,
+            "target": 8
+        },
+        {
+            "source": 0,
+            "target": 9
+        },
+        {
+            "source": 0,
+            "target": 10
+        }
+    ]
+}

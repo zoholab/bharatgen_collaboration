@@ -1,0 +1,93 @@
+{
+    "directed": true,
+    "multigraph": false,
+    "graph": {},
+    "nodes": [
+        {
+            "label": "-reaching",
+            "id": 0
+        },
+        {
+            "label": " implications",
+            "id": 1
+        },
+        {
+            "label": " impacts",
+            "id": 2
+        },
+        {
+            "label": " repercussions",
+            "id": 3
+        },
+        {
+            "label": ",",
+            "id": 4
+        },
+        {
+            "label": " effects",
+            "id": 5
+        },
+        {
+            "label": " and",
+            "id": 6
+        },
+        {
+            "label": " impact",
+            "id": 7
+        },
+        {
+            "label": " ramifications",
+            "id": 8
+        },
+        {
+            "label": " global",
+            "id": 9
+        },
+        {
+            "label": " for",
+            "id": 10
+        }
+    ],
+    "links": [
+        {
+            "source": 0,
+            "target": 1
+        },
+        {
+            "source": 0,
+            "target": 2
+        },
+        {
+            "source": 0,
+            "target": 3
+        },
+        {
+            "source": 0,
+            "target": 4
+        },
+        {
+            "source": 0,
+            "target": 5
+        },
+        {
+            "source": 0,
+            "target": 6
+        },
+        {
+            "source": 0,
+            "target": 7
+        },
+        {
+            "source": 0,
+            "target": 8
+        },
+        {
+            "source": 0,
+            "target": 9
+        },
+        {
+            "source": 0,
+            "target": 10
+        }
+    ]
+}
