@@ -496,7 +496,7 @@ class Model(nn.Module):
         self.image_path=os.path.join(self.graphdir,"Image")
         self.json_path=os.path.join(self.graphdir,"Json")
 
-        if self.gen_count == 0:#The directory structure is cleared in a freh run
+        if self.gen_count == 0:#The directory structure is cleared in a fresh run
             self.clear_folder(self.image_path)
             self.clear_folder(self.json_path)
         
@@ -722,6 +722,7 @@ class Model(nn.Module):
         parents_list.append(torch.zeros(1, dtype=torch.long, device=scores.device))
         ss_token.append(topk_index)
         input_ids = topk_index
+
         input_hidden = last_hidden[None].repeat(1, top_k, 1)
         tree_mask = self.tree_mask_init
         topk_cs_index = torch.arange(top_k, device=self.embed_tokens.weight.device)
@@ -765,9 +766,7 @@ class Model(nn.Module):
             input_hidden = out_hidden[:, out_ids]#The input hidden is being updated for the next round
 
             input_ids = topk_index.view(-1)[topk_cs_index][None]
-
-            tokenizer = AutoTokenizer.from_pretrained(self.path)
-
+        
             ss_token.append(topk_index)
             scores_list.append(cu_scores)
 
@@ -844,12 +843,14 @@ class Model(nn.Module):
         del mask_index, mask_index_list, noleaf_index, noleaf_num, leaf_num, max_depth, rid
         tree_position_ids = tree_position_ids.to(hidden_states.device)
         self.gen_count+=1
-
         return draft_tokens, retrieve_indices, tree_mask, tree_position_ids
     
     #Zoho Labs Kottarakara: added visualize_draft_tree
     #Getting the parent-child relations and the node id to token mapping
     def visualize_draft_tree(self, ss_token_list, parents_list):
+
+        ss_token_list=torch.cat([self.root_token_id,ss_token_list],dim=0)
+
         if getattr(self, 'tokenizer', None) is None:
             self.tokenizer = AutoTokenizer.from_pretrained(self.path)
 
@@ -887,7 +888,7 @@ class Model(nn.Module):
         G.add_edges_from(tree)
         pos = nx.nx_agraph.graphviz_layout(G, prog="dot")
         node_labels=nx.get_node_attributes(G,'label')
-        plt.figure(figsize=(20,15))
+        plt.figure(figsize=(25,20))
         nx.draw(G, pos,labels=node_labels,node_size=800, node_color="skyblue", font_size=10, font_weight="bold", arrows=True)
         plt.show()
 
