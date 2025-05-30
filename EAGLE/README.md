@@ -31,10 +31,6 @@ eagle-llm"><b>Blog</b></a> |
   <img src="./figs/eagle3r.jpg" alt="benchmark" width="790">
 </p>
 
-This is a clone of EAGLE repo with draft tree visualization code added by Zoho Labs, Kottarakkara.
-
-eagle/Graphs contain sample draft tree graph image and json output.
-
 EAGLE (Extrapolation Algorithm for Greater Language-model Efficiency) is a new baseline for fast decoding of Large Language Models (LLMs) with provable performance maintenance. This approach involves extrapolating the second-top-layer contextual feature vectors of LLMs, enabling a significant boost in generation efficiency. 
 
 - EAGLE is:

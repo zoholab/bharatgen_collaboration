@@ -18,7 +18,7 @@ model = EaModel.from_pretrained(
     total_token=-1
 )
 model.eval()
-your_message="What are your views on deforestation?"
+your_message="How do you think the dinosours became extinct"
 conv = get_conversation_template("llama")
 conv.append_message(conv.roles[0], your_message)
 conv.append_message(conv.roles[1], None)

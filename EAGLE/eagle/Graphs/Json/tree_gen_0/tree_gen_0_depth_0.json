@@ -4,47 +4,102 @@
     "graph": {},
     "nodes": [
         {
-            "label": " Def",
+            "label": "I",
+            "style": "filled",
+            "fillcolor": "white",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 0
         },
         {
-            "label": "ection",
+            "label": "'m",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 1
         },
         {
-            "label": "orest",
+            "label": " am",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 2
         },
         {
-            "label": "lection",
+            "label": "'d",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 3
         },
         {
-            "label": "raction",
+            "label": " hope",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 4
         },
         {
-            "label": "lation",
+            "label": "'ll",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 5
         },
         {
-            "label": "ra",
+            "label": " was",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 6
         },
         {
-            "label": "eat",
+            "label": " apologize",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 7
         },
         {
-            "label": "r",
+            "label": " can",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 8
         },
         {
-            "label": "ragment",
+            "label": "!",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 9
         },
         {
-            "label": " is",
+            "label": "’m",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 10
         }
     ],

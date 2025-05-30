@@ -5,6 +5,8 @@ import random
 from typing import List, Tuple
 import time
 import torch
+from transformers import AutoTokenizer
+
 
 # TODO
 # from transformers import LlamaTokenizer
@@ -234,6 +236,7 @@ def initialize_tree(input_ids, model, past_key_values, logits_processor):
     outputs, orig, hidden_states = model(
         input_ids, past_key_values=past_key_values, output_orig=True
     )
+
     if logits_processor is not None:
         logits = orig[:, -1]#the logits of the last token
         logits = logits_processor(None, logits)
@@ -242,8 +245,11 @@ def initialize_tree(input_ids, model, past_key_values, logits_processor):
     else:
         token = torch.argmax(orig[:, -1])
         token = token[None, None]
+
+
     input_ids = torch.cat((input_ids, token.to(input_ids.device)), dim=1)
 
+    # exit()
     # Clone the output hidden states
     if model.use_eagle3:
         ea_device = model.ea_layer.lm_head.weight.device
@@ -251,8 +257,8 @@ def initialize_tree(input_ids, model, past_key_values, logits_processor):
             outputs["hidden_states"] = [x.to(ea_device) for x in outputs["hidden_states"]]
         hidden_states=torch.cat(outputs["hidden_states"],dim=-1)
     # print(model.ea_layer.topK_genrate)
-    iteration_counter=0
     draft_tokens, retrieve_indices,tree_mask,tree_position_ids= model.ea_layer.topK_genrate(hidden_states, input_ids, model.base_model.lm_head,logits_processor)
+
     return draft_tokens, retrieve_indices,tree_mask,tree_position_ids, orig, hidden_states, token
 
 
@@ -410,8 +416,8 @@ def evaluate_posterior(
         if adjustflag and accept_length != candidates.shape[1]:
             sample_p = gtp
         else:
-            gt_logits = logits[best_candidate, accept_length - 1]
-            gt_logits = logits_processor(None, gt_logits)
+            gt_logits = logits[best_candidate, accept_length - 1][None]
+            gt_logits = logits_processor(None, gt_logits)[0]
             sample_p = torch.softmax(gt_logits, dim=0)
         return torch.tensor(best_candidate), accept_length - 1, sample_p
 

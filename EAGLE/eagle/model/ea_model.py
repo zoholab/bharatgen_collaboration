@@ -54,6 +54,7 @@ class EaModel(nn.Module):
         if use_eagle3:
             self.ea_layer = Model(config, bias=bias, total_tokens=total_token, depth=depth, top_k=top_k,
                                   threshold=threshold, path=base_model_name_or_path,load_emb=True)
+            print("The ea layer os being called")
         else:
             self.ea_layer = Model1(config, bias=bias, total_tokens=total_token, depth=depth, top_k=top_k,
                                   threshold=threshold, path=base_model_name_or_path,load_emb=True)
@@ -237,7 +238,7 @@ class EaModel(nn.Module):
             self.current_length_data = current_length_data
         input_len = input_ids.shape[1]
         reset_tree_mode(self)
-        base_path=self.base_model_name_or_path
+
         draft_tokens, retrieve_indices, tree_mask, tree_position_ids, logits, hidden_state, sample_token = initialize_tree(
             input_ids, self, past_key_values, logits_processor
         )

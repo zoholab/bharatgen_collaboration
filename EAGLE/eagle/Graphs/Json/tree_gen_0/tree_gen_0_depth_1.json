@@ -4,88 +4,193 @@
     "graph": {},
     "nodes": [
         {
-            "label": " Def",
+            "label": "I",
+            "style": "filled",
+            "fillcolor": "white",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 0
         },
         {
-            "label": "ection",
+            "label": "'m",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 1
         },
         {
-            "label": "orest",
+            "label": " am",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 2
         },
         {
-            "label": "lection",
+            "label": "'d",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 3
         },
         {
-            "label": "raction",
+            "label": " hope",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 4
         },
         {
-            "label": "lation",
+            "label": "'ll",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 5
         },
         {
-            "label": "ra",
+            "label": " was",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 6
         },
         {
-            "label": "eat",
+            "label": " apologize",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 7
         },
         {
-            "label": "r",
+            "label": " can",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 8
         },
         {
-            "label": "ragment",
+            "label": "!",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 9
         },
         {
-            "label": " is",
+            "label": "’m",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 10
         },
         {
-            "label": ",",
+            "label": " happy",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 11
         },
         {
-            "label": " has",
+            "label": " glad",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 12
         },
         {
-            "label": "!",
-            "id": 13
-        },
-        {
-            "label": " can",
-            "id": 14
-        },
-        {
-            "label": " as",
-            "id": 15
-        },
-        {
-            "label": " refers",
-            "id": 16
-        },
-        {
-            "label": ",",
+            "label": " happy",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 21
         },
         {
-            "label": " concerns",
-            "id": 17
+            "label": " delighted",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
+            "id": 13
         },
         {
-            "label": ",",
+            "label": " be",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
             "id": 31
         },
         {
-            "label": " represents",
-            "id": 18
+            "label": " you",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
+            "id": 41
+        },
+        {
+            "label": " pleased",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
+            "id": 14
+        },
+        {
+            "label": " thrilled",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
+            "id": 15
+        },
+        {
+            "label": " glad",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
+            "id": 22
+        },
+        {
+            "label": " lovely",
+            "style": "filled",
+            "fillcolor": "orange",
+            "fontweight": "bold",
+            "fontsize": "20",
+            "fontcolor": "black",
+            "id": 16
         }
     ],
     "links": [
@@ -154,20 +259,20 @@
             "target": 16
         },
         {
-            "source": 1,
-            "target": 17
-        },
-        {
-            "source": 1,
-            "target": 18
-        },
-        {
             "source": 2,
             "target": 21
         },
         {
+            "source": 2,
+            "target": 22
+        },
+        {
             "source": 3,
             "target": 31
+        },
+        {
+            "source": 4,
+            "target": 41
         }
     ]
 }
