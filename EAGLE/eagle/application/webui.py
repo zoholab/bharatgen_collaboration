@@ -390,8 +390,8 @@ with gr.Blocks(css=custom_css) as demo:
     stop_button.click(fn=None, inputs=None, outputs=None, cancels=[send_event,regenerate_event,enter_event])
 
 demo.queue()
-threading.Thread(target=launch_web).start()
-demo.launch(server_name="192.168.10.234", server_port=5000)
-
+#threading.Thread(target=launch_web).start()
+#demo.launch(server_name="192.168.10.234", server_port=5000)
+demo.launch(share=True)
 # asyncio.run(launch_web())
 # slideshow.launch(server_name="192.168.10.234", server_port=5005)

@@ -56,4 +56,5 @@ with gr.Blocks() as slideshow:
     timer.tick(fn=image_processor, outputs=img_output)
 
 
-slideshow.launch(server_name="192.168.10.234", server_port=5005)
+#slideshow.launch(server_name="192.168.10.234", server_port=5005)
+slideshow.launch(share=True)
