@@ -1,1 +1,1 @@
-## EAGLE and SAM-DEcoding are maintained in seperate branches
+## EAGLE and SAM-Decoding are maintained in seperate branches
