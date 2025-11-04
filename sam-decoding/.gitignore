@@ -1,0 +1,9 @@
+__pycache__
+sam_data/*
+local_cache/*
+third_party/
+evaluation/data
+test.py
+rsync.txt
+misc
+evaluation/model/pia
