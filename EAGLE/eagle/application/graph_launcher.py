@@ -52,7 +52,7 @@ with gr.Blocks() as slideshow:
 
     slideshow.load(image_processor, inputs=None, outputs=img_output)
 
-    timer = gr.Timer(value=IMAGE_REFRESH_DELAY, render=True)  # ⬅️ This sets the interval
+    timer = gr.Timer(value=IMAGE_REFRESH_DELAY, render=True)  #  This sets the interval
     timer.tick(fn=image_processor, outputs=img_output)
 
 
