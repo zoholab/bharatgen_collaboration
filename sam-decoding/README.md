@@ -81,7 +81,7 @@ We also provide cli tools for inference, which can be found at `samd/inference/c
 
 Note: Currently the data used to build static sam is limited and comes from vicuna-7b, which leads to discrepancies between the generated drafts and the generated results of larger models. Therefore, in the case of accelerating larger models based on SAM-Decoding [EAGLE2], it is recommended to turn off static sam to achieve the optimal acceleration ratio.
 ## WEB UI
-To use the gradio chatbot use `test/samdwebui.py`
+To use the gradio chatbot use `tests/samdwebui.py`
 
 ## Example
 
