@@ -19,8 +19,8 @@ import time
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_path', type=str, required=True)
-    parser.add_argument('--sam_path', type=str, default=None)
+    parser.add_argument('--model_path', type=str, default="lmsys/vicuna-7b-v1.3") #required=True)
+    parser.add_argument('--sam_path', type=str, default="/workspace/pranav-shinde/SAM-Decoding/downloads/sam_alpaca_vicuna-7b-v1.3.pkl")
     parser.add_argument("--samd_max_predicts", type=int, default=40)
     parser.add_argument("--samd_alpha", type=float, default=4.0)
     parser.add_argument("--samd_len_bias", type=int, default=5)

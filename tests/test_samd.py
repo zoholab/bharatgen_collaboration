@@ -19,13 +19,13 @@ import time
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_path', type=str, required=True)
-    parser.add_argument('--sam_path', type=str, default=None)
+    parser.add_argument('--model_path', type=str, default="lmsys/vicuna-7b-v1.3") # required=True
+    parser.add_argument('--sam_path', type=str, default="/nfs/kundeshwar/pranav-shinde/SAM-Decoding/downloads/sam_alpaca_vicuna-7b-v1.3_min-endpos.pkl")
     parser.add_argument('--samd_n_predicts', type=int, default=15)
     parser.add_argument('--max_new_tokens', type=int, default=512)
     parser.add_argument('--max_cache_len', type=int, default=2048)
-    parser.add_argument("--tree_method", type=str, default="token_recycle")
-    parser.add_argument("--tree_model_path", type=str, default="/data/models/EAGLE-Vicuna-7B-v1.3")
+    parser.add_argument("--tree_method", type=str, default="eagle2")
+    parser.add_argument("--tree_model_path", type=str, default="/nfs/kundeshwar/pranav-shinde/SAM-Decoding/downloads/hub/models--yuhuili--EAGLE-Vicuna-7B-v1.3/snapshots/7eb58b1b31cd2dbfcd7870f2e8c6d3f3ce8457ed")
     parser.add_argument('--dtype', type=str, default='float16', choices=['float16', 'float32'])
     parser.add_argument('--device', type=str, default="cuda", choices=['cuda', 'cpu'])
     args = parser.parse_args()

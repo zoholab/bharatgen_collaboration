@@ -5,7 +5,7 @@ from datasets import Dataset, DatasetDict, load_dataset, concatenate_datasets
 from .data_utils import process_alpaca, process_gsm8k
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_name', type=str, default='/data/models/vicuna-7b-v1.3')
+parser.add_argument('--model_name', type=str, default='lmsys/vicuna-7b-v1.3')
 parser.add_argument('--cutoff_len', type=int, default=1024)
 parser.add_argument('--prompt_template_name', type=str, default='vicuna')
 args = parser.parse_args()

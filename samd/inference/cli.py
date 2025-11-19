@@ -212,9 +212,9 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, required=True, help="Model name or path.")
+    parser.add_argument("--model", type=str, help="Model name or path.", default="lmsys/vicuna-7b-v1.3") # required=True)
     parser.add_argument(
-        "--conv-template", type=str, default=None, help="Conversation prompt template."
+        "--conv-template", type=str, default="vicuna_v1.1", help="Conversation prompt template.",
     )
     parser.add_argument(
         "--conv-system-msg", type=str, default=None, help="Conversation system message."
@@ -247,9 +247,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--sam_path",
         type=str,
-        default=None
+        default="/workspace/pranav-shinde/SAM-Decoding/downloads/sam_alpaca_vicuna-7b-v1.3_min-endpos.pkl"
     )
-    parser.add_argument("--tree_method", type=str, default="token_recycle")
-    parser.add_argument("--tree_model_path", type=str, default="/data/models/EAGLE-Vicuna-7B-v1.3")
+    parser.add_argument("--tree_method", type=str, default="eagle2")
+    parser.add_argument("--tree_model_path", type=str, default="/workspace/pranav-shinde/SAM-Decoding/downloads/hub/models--yuhuili--EAGLE-Vicuna-7B-v1.3/snapshots/7eb58b1b31cd2dbfcd7870f2e8c6d3f3ce8457ed/")
+
     args = parser.parse_args()
     main(args)

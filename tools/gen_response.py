@@ -4,8 +4,9 @@ from datasets import load_from_disk, Dataset
 from vllm import LLM, SamplingParams
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_name', type=str, default='/data/models/vicuna-7b-v1.3')
+parser.add_argument('--model_name', type=str, default='lmsys/vicuna-7b-v1.3')
 parser.add_argument('--sam_data_path', type=str, default='sam_data/sam_prompts')
+parser.add_argument('--gpu_memory_utilization', type=float, default=0.9,)
 args = parser.parse_args()
 
 sam_dataset = load_from_disk(args.sam_data_path)
@@ -13,7 +14,7 @@ sam_dataset = load_from_disk(args.sam_data_path)
 prompts = sam_dataset["prompt"]
 print("number of prompts: {}".format(len(prompts)))
 
-llm = LLM(model=args.model_name, enable_prefix_caching=True)
+llm = LLM(model=args.model_name, enable_prefix_caching=True, gpu_memory_utilization=args.gpu_memory_utilization)
 sampling_params = SamplingParams(temperature=0.8, top_p=0.95, max_tokens=1024)
 
 outputs = llm.generate(prompts, sampling_params)
@@ -31,3 +32,4 @@ for output in outputs:
 
 sam_dialogues = Dataset.from_list(sam_dialogues)
 sam_dialogues.save_to_disk("sam_data/sam_dialogues")
+print(sam_dialogues[:10])
