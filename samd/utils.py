@@ -5,6 +5,8 @@ from enum import Enum
 from typing import List, Dict, Optional, Callable
 from dataclasses import dataclass, field
 from collections import namedtuple
+from transformers import AutoTokenizer
+
 from transformers.generation.logits_process import (
     LogitsProcessorList,
     RepetitionPenaltyLogitsProcessor,
@@ -71,7 +73,9 @@ def gen_candidates(
     samd_config: SamdConfig,
     gen_config: SamdGenerationConfig,
     device: torch.device,
+    step
 ):
+
     """
     Generate candidates based on provided logits and indices.
     
@@ -82,11 +86,15 @@ def gen_candidates(
     - tuple (torch.Tensor, List[int]): ...
     """
     # Greedy decoding: Select the most probable candidate from the original logits.
+    
+    #A single token id is retrived from the sampled prob distribution
     if gen_config.greedy:
         start_token = torch.argmax(sample_p, dim=-1).item()
     else:
         start_token = torch.multinomial(sample_p, 1).item()
-    candidate_type, tokens, buffers_kwargs = draft.lookup(start_token)
+    
+    candidate_type,seqtype, tokens, buffers_kwargs = draft.lookup(start_token,step)
+    
     tree_retrieve_indices = buffers_kwargs.get("tree_retrieve_indices", tree_retrieve_indices)
     if candidate_type == CandidateType.sequence:
         tokens = torch.tensor([tokens], dtype=torch.long, device=device)
@@ -95,9 +103,9 @@ def gen_candidates(
         tokens_ext = torch.tensor(tokens + [0], dtype=torch.long, device=device)
         candidate_tokens = tokens_ext[tree_retrieve_indices]
         tokens = torch.tensor([tokens], dtype=torch.long, device=device)
-
     return Candidates(
         candidate_type,
+        seqtype,
         tokens,
         candidate_tokens,
         buffers_kwargs,

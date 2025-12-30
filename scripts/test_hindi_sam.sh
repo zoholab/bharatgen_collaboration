@@ -9,10 +9,14 @@ SAM_PATH="downloads/sam_hindi_wordgroup.pkl"
 N_PREDICTS=15
 MAX_NEW_TOKENS=256
 DRAFT_PATH="/nfs/kundeshwar/pranav-shinde/SAM-Decoding/downloads/airavata_bs1/state_20"
+LEN_THRESHOLD=0
+LEN_BIAS=0
+DISABLE_DYN="True"
+DISABLE_EAGLE="True"
 
 
 # Default Hindi prompt
-PROMPT="हिंदुस्तानी शास्त्रीय संगीत के बारें में बताओ।"
+PROMPT="हिंदुस्तानी शास्त्रीय संगीत"
 
 echo "Testing word-group-aware SAM inference..."
 echo "Model: $MODEL_PATH"
@@ -20,7 +24,7 @@ echo "SAM: $SAM_PATH"
 echo "Prompt: $PROMPT"
 echo ""
 
-CUDA_VISIBLE_DEVICES=3 python tests/test_samd_hindi_wordgroup.py \
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 python tests/test_samd_hindi_wordgroup.py \
     --model_path "$MODEL_PATH" \
     --sam_path "$SAM_PATH" \
     --samd_n_predicts "$N_PREDICTS" \
@@ -28,8 +32,13 @@ CUDA_VISIBLE_DEVICES=3 python tests/test_samd_hindi_wordgroup.py \
     --tree_method "eagle2" \
     --tree_model_path "$DRAFT_PATH" \
     --dtype "float16" \
-    --device "cuda" \
-    --prompt "$PROMPT"
+    --device "auto" \
+    --len_threshold "$LEN_THRESHOLD" \
+    --len_bias "$LEN_BIAS" \
+    --disable_dyn "$DISABLE_DYN" \
+    --disable_eagle "$DISABLE_EAGLE" \
+    --prompt "$PROMPT" \
+    --skip_baseline
 
 echo ""
 echo "Inference complete!"

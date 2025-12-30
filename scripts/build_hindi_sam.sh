@@ -4,8 +4,8 @@
 # This script builds a SAM that respects word group boundaries
 
 # Default paths - modify as needed
-INPUT_FILE="/nfs/kundeshwar/pranav-shinde/SAM-Decoding/downloads/processed_nios.jsonl"
-OUTPUT_PATH="/nfs/kundeshwar/pranav-shinde/SAM-Decoding/downloads/sam_hindi_wordgroup.pkl"
+INPUT_FILE="/nfs/kundeshwar/pranav-shinde/SAM-Decoding/downloads/processed_file.jsonl"
+OUTPUT_PATH="/nfs/kundeshwar/pranav-shinde/SAM-Decoding/downloads/sam_hindi_wordgroup_wiki.pkl"
 N_PREDICTS=15
 # EOS TOKEN for Airavata tokenizer
 EOS_TOKEN=2

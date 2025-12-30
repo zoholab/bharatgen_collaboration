@@ -8,7 +8,9 @@ import argparse
 import pickle
 import torch
 import time
-from typing import Optional
+import csv
+from datetime import datetime
+from typing import Optional, Dict, Any
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -24,10 +26,22 @@ class WordGroupAwareDraftModel(DraftModel):
     Draft model that respects word group boundaries during inference.
     """
     
-    def __init__(self, config, sam_static=None, lm=None, dtype=None, device=None, tokenizer=None):
-        """Initialize with original dynamic SAM."""
+    def __init__(
+        self,
+        config,
+        sam_static=None,
+        lm=None,
+        dtype=None,
+        device=None,
+        tokenizer=None,
+        disable_dyn: bool = False,
+        disable_eagle: bool = False,
+    ):
+        """Initialize with optional ability to disable dynamic or tree drafting."""
         # Create original dynamic SAM (no word-group awareness needed here)
         sam_dyn = DynSAM(config.n_predicts)
+        self.disable_dyn = disable_dyn
+        self.disable_eagle = disable_eagle
         
         # Store tokenizer for decoding
         self.tokenizer = tokenizer
@@ -36,6 +50,28 @@ class WordGroupAwareDraftModel(DraftModel):
         self.static_sam_accepts = 0
         self.dynamic_sam_accepts = 0
         self.eagle_accepts = 0
+        self.method_stats: Dict[str, Dict[str, Any]] = {
+            "dynamic": {
+                "invocations": 0,
+                "generated_tokens": 0,
+                "accepted_tokens": 0,
+                "accept_lengths": [],
+            },
+            "static": {
+                "invocations": 0,
+                "generated_tokens": 0,
+                "accepted_tokens": 0,
+                "accept_lengths": [],
+            },
+            "tree": {
+                "invocations": 0,
+                "generated_tokens": 0,
+                "accepted_tokens": 0,
+                "accept_lengths": [],
+            },
+        }
+        self._last_method: Optional[str] = None
+        self._last_generated_tokens: int = 0
         
         # Call parent init
         super().__init__(
@@ -61,49 +97,76 @@ class WordGroupAwareDraftModel(DraftModel):
                 print(f"     Combined: '{decoded_text}'")
             else:
                 print(f"\n  📝 Updating Dynamic SAM with {len(tokens_list)} accepted tokens: {tokens_list}")
-            self.sam_dyn.add_tokens(tokens_list)
+            if not self.disable_dyn:
+                self.sam_dyn.add_tokens(tokens_list)
             self.sam_static.transfer_tokens(tokens_list)
+            if self._last_method is not None:
+                stats = self.method_stats[self._last_method]
+                stats["accepted_tokens"] += len(tokens_list)
+                stats["accept_lengths"].append(len(tokens_list))
+                self._last_method = None
+                self._last_generated_tokens = 0
         
-        self.tree_model.update(
-            tokens=tokens,
-            last_hidden_states=last_hidden_states,
-            tree_tokens=tree_tokens,
-            tree_logits=tree_logits,
-        )
+        if not self.disable_eagle:
+            self.tree_model.update(
+                tokens=tokens,
+                last_hidden_states=last_hidden_states,
+                tree_tokens=tree_tokens,
+                tree_logits=tree_logits,
+            )
     
-    def lookup(self, start_token: int):
+    def lookup(self, start_token: int, step: int = 0):
         """
-        Lookup draft tokens, respecting word boundaries.
+        Lookup draft tokens, respecting word boundaries, and return the seqtype
+        so upstream streaming/colour-coding can distinguish token sources.
         """
         print(f"\n  🔍 Lookup for token {start_token}")
-        
+
         # Decode start token if tokenizer available
         if self.tokenizer:
             start_text = self.tokenizer.decode([start_token], skip_special_tokens=True)
             print(f"    📝 Start token: {start_token} → '{start_text}'")
         
-        # Check dynamic SAM first
-        index_dyn, match_dyn = self.sam_dyn.lookup(start_token)
-        print(f"    🔄 Dynamic SAM: index={index_dyn}, match_length={match_dyn}")
+        # Check dynamic SAM first (if enabled)
+        counter = 0
+        if not self.disable_dyn:
+            index_dyn, match_dyn, counter = self.sam_dyn.lookup(start_token, step, counter)
+            print(f"    🔄 Dynamic SAM: index={index_dyn}, match_length={match_dyn}")
+        else:
+            index_dyn, match_dyn = -1, float('-inf')
+            print("    🔄 Dynamic SAM disabled")
         
-        # Check static SAM
-        index_static, match_static = self.sam_static.lookup(start_token)
+        # Check static SAM (word-group-aware)
+        index_static, match_static, counter = self.sam_static.lookup(start_token, step, counter)
         match_static -= self.len_bias
         print(f"    📚 Static SAM: index={index_static}, match_length={match_static} (after bias)")
         
         # Decide which SAM to use
-        if max(match_dyn, match_static) >= self.len_threshold:
+        best_match = max(match_dyn, match_static)
+        threshold_met = best_match >= self.len_threshold
+
+        if threshold_met or self.disable_eagle:
             from samd.draft import CandidateType
             
-            if match_dyn >= match_static:
+            use_dynamic = (not self.disable_dyn) and (match_dyn >= match_static)
+
+            if use_dynamic:
                 print(f"    ✅ Using DYNAMIC SAM (match_dyn={match_dyn} >= match_static={match_static})")
                 self.dynamic_sam_accepts += 1
                 seq = self.sam_dyn.gen_draft(index_dyn, start_token)
+                chosen_method = "dynamic"
             else:
-                print(f"    ✅ Using STATIC SAM (match_static={match_static} > match_dyn={match_dyn})")
+                print(f"    ✅ Using STATIC SAM (match_static={match_static} {'>=' if match_static >= match_dyn else '<'} match_dyn={match_dyn})")
                 self.static_sam_accepts += 1
                 # Use word-group-aware gen_draft from static SAM
                 seq = self.sam_static.gen_draft(index_static, start_token)
+                chosen_method = "static"
+            generated_len = len([t for t in seq if t != 0])
+            stats = self.method_stats[chosen_method]
+            stats["invocations"] += 1
+            stats["generated_tokens"] += generated_len
+            self._last_method = chosen_method
+            self._last_generated_tokens = generated_len
             
             # Decode and print the draft with individual tokens
             if self.tokenizer:
@@ -116,13 +179,28 @@ class WordGroupAwareDraftModel(DraftModel):
                 print(f"       Decoded tokens: {draft_tokens_decoded}")
                 print(f"       Combined text: '{draft_text}'")
             
-            return (CandidateType.sequence, seq, {})
+            return (CandidateType.sequence, chosen_method, seq, {})
         else:
-            print(f"    ⚠️  Neither SAM meets threshold (best={max(match_dyn, match_static)} < {self.len_threshold}), using TREE/EAGLE model")
+            if self.disable_eagle:
+                # Should not reach here because condition above handles disable_eagle
+                print("    ⚠️  Tree model disabled; resorting to STATIC SAM despite threshold miss")
+                from samd.draft import CandidateType
+                self.static_sam_accepts += 1
+                seq = self.sam_static.gen_draft(index_static, start_token)
+                return (CandidateType.sequence, "static", seq, {})
+
+            print(f"    ⚠️  Neither SAM meets threshold (best={best_match} < {self.len_threshold}), using TREE/EAGLE model")
             self.eagle_accepts += 1
             # Fall back to tree model
             from samd.draft import CandidateType
-            return (CandidateType.tree,) + self.tree_model.gen_draft(start_token)
+            tree_tokens, buffers_kwargs = self.tree_model.gen_draft(start_token)
+            tree_len = len(tree_tokens)
+            stats = self.method_stats["tree"]
+            stats["invocations"] += 1
+            stats["generated_tokens"] += tree_len
+            self._last_method = "tree"
+            self._last_generated_tokens = tree_len
+            return (CandidateType.tree, "tree", tree_tokens, buffers_kwargs)
 
 
 def load_wordgroup_sam(path: str):
@@ -140,6 +218,17 @@ def load_wordgroup_sam(path: str):
     print(f"  Word boundaries: {sum(sam.word_boundaries)}")
     
     return sam
+
+
+def str2bool(value: str) -> bool:
+    if isinstance(value, bool):
+        return value
+    value = value.lower()
+    if value in {"true", "t", "1", "yes", "y"}:
+        return True
+    if value in {"false", "f", "0", "no", "n"}:
+        return False
+    raise argparse.ArgumentTypeError(f"Invalid boolean value: {value}")
 
 
 def parse_args():
@@ -200,7 +289,7 @@ def parse_args():
         '--device', 
         type=str, 
         default="cuda", 
-        choices=['cuda', 'cpu'],
+        choices=['cuda', 'cpu', 'auto'],
         help='Device to run on'
     )
     parser.add_argument(
@@ -208,6 +297,41 @@ def parse_args():
         type=str,
         default=None,
         help='Hindi prompt for testing'
+    )
+    parser.add_argument(
+        '--len_threshold',
+        type=int,
+        default=5,
+        help='Minimum match length required to accept SAM drafts'
+    )
+    parser.add_argument(
+        '--len_bias',
+        type=int,
+        default=5,
+        help='Bias subtracted from static SAM matches when comparing to dynamic SAM'
+    )
+    parser.add_argument(
+        '--disable_dyn',
+        type=str2bool,
+        default=False,
+        help='Disable dynamic SAM drafting entirely'
+    )
+    parser.add_argument(
+        '--disable_eagle',
+        type=str2bool,
+        default=False,
+        help='Disable tree/EAGLE fallback drafting'
+    )
+    parser.add_argument(
+        '--results_csv',
+        type=str,
+        default='results/hindi_wordgroup_runs.csv',
+        help='File where run statistics will be appended as CSV rows'
+    )
+    parser.add_argument(
+        '--skip_baseline',
+        action='store_true',
+        help='Skip baseline generation (speedup will be 0 if skipped)'
     )
     
     args = parser.parse_args()
@@ -231,6 +355,8 @@ def samd_generate_wordgroup(args, inputs, model, tokenizer, sam):
         n_predicts=args.samd_n_predicts,
         tree_method=args.tree_method,
         tree_model_path=args.tree_model_path,
+        len_threshold=args.len_threshold,
+        len_bias=args.len_bias,
     )
     
     # Create word-group-aware draft model
@@ -240,7 +366,9 @@ def samd_generate_wordgroup(args, inputs, model, tokenizer, sam):
         lm=model,
         dtype=args.dtype,
         device=args.device,
-        tokenizer=tokenizer
+        tokenizer=tokenizer,
+        disable_dyn=args.disable_dyn,
+        disable_eagle=args.disable_eagle,
     )
     
     # Create SAMD model
@@ -277,11 +405,17 @@ def samd_generate_wordgroup(args, inputs, model, tokenizer, sam):
     print("\n" + "-"*80)
     print("RESULTS")
     print("-"*80)
-    print(f"Generation time: {ed - st:.2f} seconds")
+    generation_time = ed - st
+    print(f"Generation time: {generation_time:.2f} seconds")
     print(f"Decode steps: {outputs.decode_steps}")
     print(f"Decode tokens: {outputs.decode_tokens}")
-    print(f"Tokens per second: {outputs.decode_tokens / (ed - st):.2f}")
-    print(f"Average accept length per step: {sum(outputs.accepet_length_per_step) / len(outputs.accepet_length_per_step):.2f}")
+    tokens_per_second = outputs.decode_tokens / generation_time if generation_time > 0 else 0.0
+    avg_accept_length = (
+        sum(outputs.accepet_length_per_step) / len(outputs.accepet_length_per_step)
+        if outputs.accepet_length_per_step else 0.0
+    )
+    print(f"Tokens per second: {tokens_per_second:.2f}")
+    print(f"Average accept length per step: {avg_accept_length:.2f}")
     print(f"\nAccept lengths per step: {outputs.accepet_length_per_step}")
     
     # Print acceptance statistics
@@ -301,7 +435,14 @@ def samd_generate_wordgroup(args, inputs, model, tokenizer, sam):
     print(response)
     print("-"*80 + "\n")
     
-    return outputs
+    return {
+        "outputs": outputs,
+        "generation_time": generation_time,
+        "tokens_per_sec": tokens_per_second,
+        "avg_accept_length": avg_accept_length,
+        "response": response,
+        "draft": draft,
+    }
 
 
 @torch.inference_mode()
@@ -332,13 +473,127 @@ def baseline_generate(args, inputs, model, tokenizer):
     print("\n" + "-"*80)
     print("BASELINE RESULTS")
     print("-"*80)
-    print(f"Generation time: {ed - st:.2f} seconds")
-    print(f"Tokens generated: {len(tokens) - inputs.input_ids.shape[-1]}")
+    baseline_time = ed - st
+    tokens_generated = len(tokens) - inputs.input_ids.shape[-1]
+    tokens_per_sec = tokens_generated / baseline_time if baseline_time > 0 else 0.0
+    print(f"Generation time: {baseline_time:.2f} seconds")
+    print(f"Tokens generated: {tokens_generated}")
     print(f"\nGenerated text:")
     print(response)
     print("-"*80 + "\n")
     
-    return tokens
+    return {
+        "tokens": tokens,
+        "tokens_generated": tokens_generated,
+        "generation_time": baseline_time,
+        "tokens_per_sec": tokens_per_sec,
+        "response": response,
+    }
+
+
+def summarize_method_stats(method_stats: Dict[str, Dict[str, Any]]):
+    summary: Dict[str, Dict[str, float]] = {}
+    for name, stats in method_stats.items():
+        invocations = stats.get("invocations", 0)
+        accepted = stats.get("accepted_tokens", 0)
+        generated = stats.get("generated_tokens", 0)
+        accept_lengths = stats.get("accept_lengths", [])
+        avg_token_len = accepted / invocations if invocations else 0.0
+        avg_accept_len = (
+            sum(accept_lengths) / len(accept_lengths) if accept_lengths else 0.0
+        )
+        summary[name] = {
+            "invocations": invocations,
+            "accepted_tokens": accepted,
+            "generated_tokens": generated,
+            # "avg_token_len": avg_token_len,
+            "avg_accept_len": avg_accept_len,
+            "accept_rate": accepted / generated if generated else 0.0,
+        }
+    return summary
+
+
+RESULT_METHODS = ["dynamic", "static", "tree"]
+RESULT_FIELDS = [
+    # "timestamp",
+    "prompt",
+    "response",
+    "len_threshold",
+    "len_bias",
+    "disable_dyn",
+    "disable_eagle",
+    "samd_n_predicts",
+    "max_new_tokens",
+    "samd_tokens_per_sec",
+    "baseline_tokens_per_sec",
+    "speedup",
+    "decode_steps",
+    "decode_tokens",
+    "generation_time",
+    "baseline_time",
+    "overall_avg_accept_len",
+]
+for method in RESULT_METHODS:
+    RESULT_FIELDS.extend([
+        f"{method}_invocations",
+        f"{method}_accepted_tokens",
+        f"{method}_generated_tokens",
+        # f"{method}_avg_token_len",
+        f"{method}_avg_accept_len",
+        f"{method}_accept_rate",
+    ])
+
+
+def build_results_row(args, prompt: str, samd_metrics: Dict[str, Any], baseline_metrics: Optional[Dict[str, Any]]):
+    draft: WordGroupAwareDraftModel = samd_metrics["draft"]
+    method_summary = summarize_method_stats(draft.method_stats)
+    baseline_tokens_per_sec = baseline_metrics["tokens_per_sec"] if baseline_metrics else 0.0
+    baseline_time = baseline_metrics["generation_time"] if baseline_metrics else 0.0
+    speedup = (
+        samd_metrics["tokens_per_sec"] / baseline_tokens_per_sec
+        if baseline_tokens_per_sec else 0.0
+    )
+    outputs = samd_metrics["outputs"]
+    row = {
+        # "timestamp": datetime.utcnow().isoformat(),
+        "prompt": prompt,
+        "response": samd_metrics["response"],
+        "len_threshold": args.len_threshold,
+        "len_bias": args.len_bias,
+        "disable_dyn": args.disable_dyn,
+        "disable_eagle": args.disable_eagle,
+        "samd_n_predicts": args.samd_n_predicts,
+        "max_new_tokens": args.max_new_tokens,
+        "samd_tokens_per_sec": samd_metrics["tokens_per_sec"],
+        "baseline_tokens_per_sec": baseline_tokens_per_sec,
+        "speedup": speedup,
+        "decode_steps": getattr(outputs, "decode_steps", 0),
+        "decode_tokens": getattr(outputs, "decode_tokens", 0),
+        "generation_time": samd_metrics["generation_time"],
+        "baseline_time": baseline_time,
+        "overall_avg_accept_len": samd_metrics["avg_accept_length"],
+    }
+    for method in RESULT_METHODS:
+        metrics = method_summary.get(method, {})
+        row[f"{method}_invocations"] = metrics.get("invocations", 0)
+        row[f"{method}_accepted_tokens"] = metrics.get("accepted_tokens", 0)
+        row[f"{method}_generated_tokens"] = metrics.get("generated_tokens", 0)
+        # row[f"{method}_avg_token_len"] = metrics.get("avg_token_len", 0.0)
+        row[f"{method}_avg_accept_len"] = metrics.get("avg_accept_len", 0.0)
+        row[f"{method}_accept_rate"] = metrics.get("accept_rate", 0.0)
+    return row
+
+
+def append_results_row(csv_path: str, row: Dict[str, Any]):
+    directory = os.path.dirname(csv_path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    file_exists = os.path.isfile(csv_path)
+    with open(csv_path, "a", newline='', encoding='utf-8') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=RESULT_FIELDS, extrasaction='ignore')
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(row)
 
 
 def main():
@@ -393,12 +648,18 @@ def main():
     
     print(f"Input tokens: {inputs.input_ids.shape[-1]}")
     
-    # Run baseline generation for comparison
-    # baseline_generate(args, inputs, model, tokenizer)
+    baseline_metrics = None
+    if not args.skip_baseline:
+        baseline_metrics = baseline_generate(args, inputs, model, tokenizer)
+    else:
+        print("Skipping baseline generation (speedup will be 0)")
     
     # Run word-group-aware SAM generation
     if sam is not None:
-        samd_generate_wordgroup(args, inputs, model, tokenizer, sam)
+        samd_metrics = samd_generate_wordgroup(args, inputs, model, tokenizer, sam)
+        # row = build_results_row(args, prompt, samd_metrics, baseline_metrics)
+        # append_results_row(args.results_csv, row)
+        # print(f"\n📈 Appended run statistics to {args.results_csv}")
     else:
         print("Skipping SAM generation (no SAM loaded)")
 

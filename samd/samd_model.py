@@ -8,6 +8,7 @@ from typing import Optional, Union, List, Literal, Tuple, Dict
 from types import MethodType
 from transformers import LlamaForCausalLM, LlamaTokenizer
 from .samd_config import SamdConfig, ForwardState, ForwardType, MaskState
+from transformers import AutoTokenizer
 from .utils import (
     OptionalTensor,
     CandidateType,
@@ -32,6 +33,7 @@ class SamdModel(nn.Module):
         dtype: torch.dtype,
         device: str,
         stop_token_id: Optional[int] = None,
+        tokenizer: AutoTokenizer = None,
     ) -> None:
         super().__init__()
         self.samd_config = samd_config
@@ -43,12 +45,14 @@ class SamdModel(nn.Module):
         self.draft = draft
         self.dtype = dtype
         self.device = device
+        self.tokenizer = tokenizer
         
         # buffers
         self.seq_position_ids: torch.Tensor = None
         self.base_tree_attn_mask: torch.Tensor = None
         self.base_tree_position_ids: torch.Tensor = None
         self.base_tree_retrieve_indices: torch.Tensor = None
+
         self.tree_attn_mask: torch.Tensor = None
         self.tree_position_ids: torch.Tensor = None
         self.tree_retrieve_indices: torch.Tensor = None
@@ -90,7 +94,6 @@ class SamdModel(nn.Module):
         self.base_tree_position_ids = buffers["tree_position_ids"]
         self.base_tree_retrieve_indices = buffers["tree_retrieve_indices"]
         self.mask_state.set_state(self.base_tree_attn_mask)
-    
     def update_buffers(self, buffers_kwargs: Dict[str, Optional[torch.Tensor]]):
         self.tree_attn_mask = buffers_kwargs.get("tree_attn_mask", self.base_tree_attn_mask)
         self.tree_position_ids = buffers_kwargs.get("tree_position_ids", self.base_tree_position_ids)
@@ -108,6 +111,7 @@ class SamdModel(nn.Module):
             attention_mask=attention_mask,
             past_key_values=self.cache,
         )
+
         logits = outputs.logits
         last_hidden_states = outputs.last_hidden_states \
             if self.samd_config.use_last_hidden_states else None
@@ -128,14 +132,15 @@ class SamdModel(nn.Module):
         return sample_p  # [1, D]
     
     # @profile_decorator("SamdModel.decode")
-    def decode(self, sample_p: torch.Tensor, length: int):
+    def decode(self, sample_p: torch.Tensor, length: int,step):
         candidates = gen_candidates(
             sample_p,
             self.base_tree_retrieve_indices,
             self.draft,
             self.samd_config, 
             self.gen_config, 
-            self.device
+            self.device,
+            step
         )
         self.update_buffers(candidates.buffers_kwargs)
         if candidates.type == CandidateType.sequence:
@@ -145,11 +150,13 @@ class SamdModel(nn.Module):
             self.forward_state.forward_type = ForwardType.tree_decode
             position_ids = self.tree_position_ids + length
         input_ids = candidates.tokens
+   
         outputs = self.lm(
             input_ids=input_ids, 
             position_ids=position_ids,
             past_key_values=self.cache,
         )
+        
         tree_logits = outputs.logits
         # print("tree_logits.shape:", tree_logits.shape)
         if self.samd_config.use_last_hidden_states:
@@ -167,8 +174,10 @@ class SamdModel(nn.Module):
             )
             candidate_indices = OptionalTensor(self.tree_retrieve_indices)
 
+
         best_candidate, accept_length, sample_p \
-            = eval_posterior(candidate_logits, candidates.candidate_tokens, self.gen_config)
+            = eval_posterior(candidate_logits, candidates.candidate_tokens, self.gen_config)#Provided the tokens from the inp+draft
+
         new_tokens = self.update_state(
             input_ids.squeeze(0),
             tree_logits.squeeze(0),
@@ -178,8 +187,37 @@ class SamdModel(nn.Module):
             candidate_indices,
             candidate_last_hidden_states,
         )
-        # print("new_tokens:\n{}".format(new_tokens))
-        return sample_p, new_tokens
+
+        # Minimal, human-readable trace for each decoding step
+        proposed_ids = candidates.candidate_tokens[best_candidate][:accept_length].tolist()
+        
+        # ensure accepted_ids is a plain Python list of ints regardless of input type
+        if isinstance(new_tokens, torch.Tensor):
+            accepted_ids = new_tokens.tolist()
+        elif isinstance(new_tokens, list):
+            # already a list (e.g., some draft/tree paths return lists); copy to be safe
+            accepted_ids = list(new_tokens)
+        else:
+            # try one last time to convert iterable -> list, otherwise raise a clear error
+            try:
+                accepted_ids = list(new_tokens)
+            except Exception:
+                raise TypeError(f"Unexpected type for new_tokens: {type(new_tokens)}. "
+                                "Expected torch.Tensor or list-like.")
+
+        def _decode(ids):
+            if self.tokenizer is None:
+                return ids
+            # drop padding zeros for readability
+            nz = [i for i in ids if i != 0]
+            return self.tokenizer.decode(nz, skip_special_tokens=True) if nz else ""
+        proposed_txt = _decode(proposed_ids)
+        accepted_txt = _decode(accepted_ids)
+        verifier_only = len(accepted_ids) <= 1
+        flag = " (verifier only)" if verifier_only else ""
+        print(f"[step {step}] method={candidates.seqtype} proposed='{proposed_txt}' accepted='{accepted_txt}'{flag}")
+
+        return sample_p, new_tokens, candidates.seqtype
 
     # @profile_decorator("SamdModel.update_state")
     def update_state(self,
@@ -233,27 +271,28 @@ class SamdModel(nn.Module):
         attention_mask: torch.Tensor = None,
         generation_config: SamdGenerationConfig = None, 
     ) -> Outputs:
+
         if generation_config is None:
             generation_config = SamdGenerationConfig()
         self.gen_config = generation_config
-
         assert input_ids.shape[0] == 1, "Only support batch_size == 1"  # [1, N]
-
+        
         self.set_cache(generation_config)
 
         self.draft.reset()
-        
+
         input_ids_list = input_ids.squeeze(0).tolist()
         sample_p = self.prefill(input_ids, attention_mask)
-        
+
         input_length = input_ids.shape[-1]
         decode_tokens = 0
         decode_steps = 0
         accepet_length_per_step = []
-        for step in range(generation_config.max_new_tokens):
+        for step in range(generation_config.max_new_tokens):#Generate until max new tokens
             if input_length + decode_tokens + self.samd_config.max_predicts >= generation_config.max_cache_len:
                 break
-            sample_p, new_ids = self.decode(sample_p, input_length + decode_tokens)
+            sample_p, new_ids ,seqtype= self.decode(sample_p, input_length + decode_tokens,step)#sample_p is the prob distribution
+
             eos_index = None
             if self.eos_token in new_ids:
                 eos_index = new_ids.index(self.eos_token)
@@ -272,14 +311,15 @@ class SamdModel(nn.Module):
                 break
         input_ids_list = [input_ids_list[:input_length + generation_config.max_new_tokens]]
         return Outputs(input_ids_list, decode_tokens, decode_steps, accepet_length_per_step)
-
+    
+    #Zoho Labs Kottarakara: Modified stream_generate
     @torch.inference_mode()
     def stream_generate(self,
         input_ids: torch.Tensor,
-        tokenizer: LlamaTokenizer,
-        generation_config: SamdGenerationConfig = None, 
+        attention_mask: torch.Tensor = None,
+        generation_config: SamdGenerationConfig = None,
+ 
     ):
-        attention_mask = None
         if generation_config is None:
             generation_config = SamdGenerationConfig()
         self.gen_config = generation_config
@@ -295,10 +335,11 @@ class SamdModel(nn.Module):
         
         input_length = input_ids.shape[-1]
         decode_tokens = 0
+        streamed_len =0
         for step in range(generation_config.max_steps):
             if input_length + decode_tokens + self.samd_config.max_predicts >= generation_config.max_cache_len:
                 break
-            sample_p, new_ids = self.decode(sample_p, input_length + decode_tokens)
+            sample_p, new_ids,seqtype = self.decode(sample_p, input_length + decode_tokens,step)
             eos_index = None
             if self.eos_token in new_ids:
                 eos_index = new_ids.index(self.eos_token)
@@ -307,15 +348,16 @@ class SamdModel(nn.Module):
                 eos_index = new_ids.index(self.stop_token)
                 new_ids = new_ids[:eos_index + 1]
             input_ids_list.extend(new_ids)
-            yield {
-                "text": tokenizer.decode(
-                    input_ids_list[input_length:],
-                    skip_special_tokens=True,
-                    spaces_between_special_tokens=False,
-                    clean_up_tokenization_spaces=True,
-                )
-            }
             decode_tokens += len(new_ids)
+
+            full_ids=input_ids_list[input_length:]
+
+            # Yield only new characters
+            new_text = full_ids[streamed_len:]
+            if new_text:
+                yield {"ids": new_text,"seqtype":seqtype}
+                streamed_len += len(new_text)
+
             if eos_index is not None:
                 break
             if decode_tokens >= generation_config.max_new_tokens:
