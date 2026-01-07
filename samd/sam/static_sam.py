@@ -45,6 +45,8 @@ class StaticSAM:
                     item_path=os.path.join(self.image_path,items)
                     os.remove(item_path)
 
+    def get_state(self, i):
+        return self.states[i]
     
     def reset(self):
         self.cur_index = 0
@@ -104,15 +106,15 @@ class StaticSAM:
     def transfer_state(self, index: int, length: int, token: int,is_infer=None,step=None,counter=None):
         if counter!=None:
             self.counter=counter
-        while index != 0 and token not in self.states[index].next:#executed untill the condition fails
+        while index != 0 and token not in self.get_state(index).next:#executed untill the condition fails
             # if is_infer==True:
             #     self.dfa_link_graph(index,step)
-            index = self.states[index].link
-            length = self.states[index].length
-        if token in self.states[index].next:#If correct, this gets executed only one time
+            index = self.get_state(index).link
+            length = self.get_state(index).length
+        if token in self.get_state(index).next:#If correct, this gets executed only one time
             # if is_infer==True:
             #     self.dfa_next_graph(index,token,step)
-            index = self.states[index].next[token]
+            index = self.get_state(index).next[token]
             length += 1
         else:
             index = length = 0
@@ -144,15 +146,15 @@ class StaticSAM:
 
     def to_anc(self, index: int):
         if index != 0:
-            length_to_end = self.max_length - self.states[index].min_endpos
-            while self.states[index].link != 0 and self.n_predicts > length_to_end:
-                index = self.states[index].link
-                length_to_end = self.max_length - self.states[index].min_endpos
+            length_to_end = self.max_length - self.get_state(index).min_endpos
+            while self.get_state(index).link != 0 and self.n_predicts > length_to_end:
+                index = self.get_state(index).link
+                length_to_end = self.max_length - self.get_state(index).min_endpos
         return index
 
     def gen_draft(self, index: int, start_token: int):
         # index = self.to_anc(index)
-        endpos = self.states[index].min_endpos
+        endpos = self.get_state(index).min_endpos
         pred_ids = [start_token] + self.input_ids[endpos + 1:endpos + self.n_predicts]
         if len(pred_ids) < self.n_predicts:
             pred_ids.extend([0] * (self.n_predicts - len(pred_ids)))
@@ -160,11 +162,11 @@ class StaticSAM:
     
     def dfa_next_graph(self,index,token,step):
         current_index=index
-        next_index=self.states[index].next[token]
+        next_index=self.get_state(index).next[token]
         self.draw((current_index,next_index),step,edge_color="black",token=token)
     def dfa_link_graph(self,index,step):
         current_index=index
-        link_index=self.states[index].link
+        link_index=self.get_state(index).link
         self.draw((current_index,link_index),step,edge_color="Red")
     
     def sanitize(self,token_text):
@@ -190,7 +192,7 @@ class StaticSAM:
     #             if index==0:
     #                 token_text="<ROOT>"
     #             else:
-    #                 token_id=self.input_ids[self.states[index].min_endpos]
+    #                 token_id=self.input_ids[self.get_state(index).min_endpos]
     #                 token_text=self.tokenizer.decode([token_id])
     #             token_text=str(self.sanitize(token_text))
     #             G.add_node(index,label=token_text,style="filled",fillcolor=color,fontweight="bold", fontsize="20", fontcolor="black")
@@ -217,7 +219,7 @@ class StaticSAM:
     #             elif index==0:
     #                 token_text="<ROOT>"
     #             else:
-    #                 token_id=self.input_ids[self.states[index].min_endpos]
+    #                 token_id=self.input_ids[self.get_state(index).min_endpos]
     #                 token_text=self.tokenizer.decode([token_id])
     #                 token_text=self.sanitize(token_text)
 

@@ -1,27 +1,133 @@
-import json
-import argparse
-from typing import List, Tuple, Dict
-from transformers import AutoTokenizer
+from typing import List, Tuple
+import sys
 
-def parse_word_groups(text: str) -> List[Tuple[str, bool]]:
-    segments = text.split()
-    result = []
-    
-    for segment in segments:
-        if "##" in segment:
-            words_in_segment = segment.split("##")
-            for i, word in enumerate(words_in_segment):
-                if word.strip():  
-                    is_group_end = (i == len(words_in_segment) - 1)
-                    result.append((word.strip(), is_group_end))
+word_group_count=0
+total_tokens=0
+
+RULE1_PHRASES = [
+    ["दे","दिया"],["मिला","दें"],["मुकर","जाएं"],["सम्मिलित","करना"],
+    ["हाल","ही","में"],["कर","दी"],["दे","दो"],["दे","दें"],["दी","थी"],
+]
+
+ATTACH_TO_LEFT = {
+    "से","में","का","के","की","को","पर","ने","भी","ही",
+    "द्वारा","वाला","वाली","वाले","जी","सी","तरह","किया","किए",
+}
+
+RULE3_MULTIWORDS = [
+    ["रहे","हैं"],["रहा","है"],["रही","है"],
+    ["सकता","है"],["सकती","है"],["सकते","हैं"],
+    ["हो","गयी"],["हो","गया"],
+    ["के","लिए"],["के","बाद"],["के","साथ"],["के","बीच"],
+    ["के","दौरान"],["के","खिलाफ़"],["के","प्रति"],
+    ["की","ओर"],["बारे","में"],["के","मुताबिक़"],["के","मुताबिक"],
+    ["के","तहत"],["ओर","से"],["के","कारण"],
+    ["ने","भी"],["में","ही"],["ही","में"],
+]
+
+ATTACH_MULTI_TO_LEFT = {"##".join(p) for p in RULE3_MULTIWORDS}
+
+
+A_ENDING = "ा"
+EE_ENDING = "ी"
+E_ENDING = "े"
+
+AUX_AFTER_EE = {"गई","जाएगी","जायेगी"}
+AUX_AFTER_A = {"गया","जाएगा","जायेगा"}
+
+
+def apply_phrase_grouping(tokens: List[str]) -> List[str]:
+    out = []
+    i = 0
+    n = len(tokens)
+
+    all_phrases = RULE1_PHRASES + RULE3_MULTIWORDS
+    all_phrases = sorted(all_phrases, key=len, reverse=True)
+
+    while i < n:
+        matched = False
+        for phrase in all_phrases:
+            L = len(phrase)
+            if i + L <= n and tokens[i:i + L] == phrase:
+                out.append("##".join(phrase))
+                i += L
+                matched = True
+                break
+        if matched:
+            continue
+
+        w = tokens[i]
+
+        if w.endswith(EE_ENDING) and i+1<n and tokens[i+1] in AUX_AFTER_EE:
+            out.append(w+"##"+tokens[i+1]); i+=2; continue
+
+        if w.endswith(A_ENDING) and i+1<n and tokens[i+1] in AUX_AFTER_A:
+            out.append(w+"##"+tokens[i+1]); i+=2; continue
+
+        if i+1<n and tokens[i+1]=="चाहिए" and (w.endswith(A_ENDING) or w.endswith(EE_ENDING)):
+            out.append(w+"##"+tokens[i+1]); i+=2; continue
+
+        if w.endswith(E_ENDING) and i+2<n and tokens[i+1] in {"लगता","लगती"} and tokens[i+2]=="है":
+            out.append(w+"##"+tokens[i+1]+"##"+tokens[i+2]); i+=3; continue
+
+        out.append(w)
+        i += 1
+
+    return out
+
+
+def apply_right_attachment(tokens: List[str]) -> List[str]:
+    out = []
+    i = 0
+    n = len(tokens)
+
+    def is_number_token(w):
+        cleaned = w.replace(",", "").replace(".", "")
+        return cleaned.isdigit()
+
+    while i < n:
+        w = tokens[i]
+        if (w == "नहीं" or is_number_token(w)) and i + 1 < n:
+            out.append(w + "##" + tokens[i+1]); i += 2
         else:
-            result.append((segment.strip(), True))
-    
-    return result
+            out.append(w); i += 1
+    return out
 
-def create_word_boundaries_from_groups(tokens: List[int], tokenizer, word_groups: List[Tuple[str, bool]], cleaned_text: str) -> List[bool]:
+
+def apply_left_attachment(tokens: List[str]) -> List[str]:
+    out = []
+    for tok in tokens:
+        if tok in ATTACH_TO_LEFT or tok in ATTACH_MULTI_TO_LEFT:
+            if out:
+                out[-1] = out[-1] + "##" + tok
+            else:
+                out.append(tok)
+        else:
+            out.append(tok)
+    return out
+
+
+
+def group_sentence_to_word_groups(words: List[str]) -> List[Tuple[str, bool]]:
+    grouped_words = apply_phrase_grouping(words)
+    grouped_words = apply_right_attachment(grouped_words)
+    grouped_words = apply_left_attachment(grouped_words)
+
+    groups = []
+    for seg in grouped_words:
+        if "##" in seg:
+            parts = seg.split("##")
+            for j, w in enumerate(parts):
+                groups.append((w, j == len(parts) - 1))
+        else:
+            groups.append((seg, True))
+    return groups
+
+
+def word_groups_to_token_boundaries(tokenizer, cleaned_text: str, tokens: List[int]):
     boundaries = [False] * len(tokens)
-    
+    words = cleaned_text.strip().split()
+    word_groups = group_sentence_to_word_groups(words)
     if not word_groups or not tokens:
         return boundaries
     
@@ -39,6 +145,7 @@ def create_word_boundaries_from_groups(tokens: List[int], tokenizer, word_groups
 
 def create_boundaries_with_offsets(tokens: List[int], tokenizer, word_groups: List[Tuple[str, bool]], 
                                  cleaned_text: str, offset_mapping: List[Tuple[int, int]]) -> List[bool]:
+    """Create boundaries using character offset mapping (most accurate)."""
     
     boundaries = [False] * len(tokens)
     
@@ -84,6 +191,7 @@ def create_boundaries_with_offsets(tokens: List[int], tokenizer, word_groups: Li
 
 def create_boundaries_word_based(tokens: List[int], tokenizer, word_groups: List[Tuple[str, bool]], 
                                 cleaned_text: str) -> List[bool]:
+
     boundaries = [False] * len(tokens)
     
     if not word_groups:
@@ -138,7 +246,7 @@ def create_boundaries_word_based(tokens: List[int], tokenizer, word_groups: List
                     char_pos += 1
         
     except Exception as e:
-        print(f"Warning: Word-based alignment failed ({e}), using simple distribution")
+
         group_count = sum(1 for _, is_end in word_groups if is_end)
         if group_count > 0:
             tokens_per_group = len(tokens) / group_count
@@ -159,60 +267,6 @@ def create_boundaries_word_based(tokens: List[int], tokenizer, word_groups: List
     
     return boundaries
 
-def process_hindi_data(input_file: str, output_file: str, model_name: str = " .."):
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    
-    processed_data = []
-    
-    with open(input_file, 'r', encoding='utf-8') as f:
-        for line_num, line in enumerate(f):
-            try:
-                data = json.loads(line.strip())
-                original_hindi_text = data['translation']['hin']
-                
-                word_groups = parse_word_groups(original_hindi_text)
-                
-                cleaned_text = original_hindi_text.replace('##', ' ')
-                
-                tokens = tokenizer(cleaned_text, return_tensors=None)['input_ids']
-                
-                boundaries = create_word_boundaries_from_groups(tokens, tokenizer, word_groups, cleaned_text)
-                
-                processed_entry = {
-                    'original_text': original_hindi_text,  
-                    'cleaned_text': cleaned_text,          
-                    'tokens': tokens,
-                    'word_group_boundaries': boundaries,
-                    'word_groups': word_groups,           
-                    'original_data': data
-                }
-                
-                processed_data.append(processed_entry)
-                
-                if (line_num + 1) % 1000 == 0:
-                    print(f"Processed {line_num + 1} lines...")
-                    
-            except json.JSONDecodeError as e:
-                print(f"Error parsing line {line_num + 1}: {e}")
-                continue
-            except Exception as e:
-                print(f"Error processing line {line_num + 1}: {e}")
-                continue
-    
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(processed_data, f, ensure_ascii=False, indent=2)
-    
-    print(f"Processed {len(processed_data)} entries and saved to {output_file}")
-    return processed_data
+def boundaries_for_token_ids(tokenizer, text: str, token_ids: List[int]):
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process Hindi data for word-group-aware SAM")
-    parser.add_argument("--input", required=True, help="Input JSONL file path")
-    parser.add_argument("--output", required=True, help="Output JSON file path")
-    parser.add_argument("--model", default=" ", help="Tokenizer model name")
-    
-    args = parser.parse_args()
-    
-    process_hindi_data(args.input, args.output, args.model)
+    return word_groups_to_token_boundaries(tokenizer, text, token_ids)

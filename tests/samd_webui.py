@@ -1,4 +1,3 @@
-#Zoho Labs Kottarakara: User interface for Sam-Decoding
 #Import necessary libraries
 import argparse
 import pickle
@@ -6,6 +5,9 @@ import gradio as gr
 import torch
 import re
 import time
+import os
+import re
+
 from fastchat.model import get_conversation_template
 from transformers import (
     AutoModelForCausalLM, 
@@ -23,18 +25,20 @@ from samd import (
     DraftModel,
     load_sam
 )
+
 from samd.draft import CandidateType
 from samd.wordgroup_sam import WordGroupAwareSAM
-#Parse necessary arguments
+from samd.wordgroup.grouping import boundaries_for_token_ids
+
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_path', type=str, required=True)
-parser.add_argument('--sam_path', type=str, default=None)
+parser.add_argument('--model_path', type=str, default=" ")
+parser.add_argument('--sam_path', type=str, default=" ")#Provide the directory path of the shards
 parser.add_argument('--wordgroup_sam', action='store_true', help='Treat sam_path as a word-group-aware SAM pickle')
 parser.add_argument('--samd_n_predicts', type=int, default=10)
 parser.add_argument('--max_new_tokens', type=int, default=512)
 parser.add_argument('--max_cache_len', type=int, default=2048)
 parser.add_argument("--tree_method", type=str, default="eagle2")
-parser.add_argument("--tree_model_path", type=str, default=None,required=True)
+parser.add_argument("--tree_model_path", type=str, default=" ")
 parser.add_argument('--len_threshold', type=int, default=5)
 parser.add_argument('--len_bias', type=int, default=5)
 parser.add_argument('--disable_dyn', action='store_true', help='Disable dynamic SAM drafting')
@@ -48,7 +52,6 @@ args.dtype = {
     'float32': torch.float32,
 }[args.dtype]
 
-# load the model and set to evaluation mode
 tokenizer = AutoTokenizer.from_pretrained(args.model_path)
 
 model = AutoModelForCausalLM.from_pretrained(
@@ -58,25 +61,68 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 model.eval()
 
+class ShardedWordGroupSAM:
 
-def load_wordgroup_sam(path: str):
-    """Load a word-group-aware SAM pickle and return it (or None if not found)."""
-    if path is None:
-        return None
-    try:
-        with open(path, "rb") as f:
-            sam = pickle.load(f)
-        if not isinstance(sam, WordGroupAwareSAM):
-            print("[WARN] Loaded SAM is not WordGroupAwareSAM; proceeding anyway.")
-        return sam
-    except FileNotFoundError:
-        print(f"[WARN] wordgroup SAM not found at {path}; continuing without static SAM")
-        return None
+    def __init__(self, shard_dir):
+
+        self.shard_dir = shard_dir
+
+        meta_path = os.path.join(shard_dir, "sam_meta.pt")
+        meta = torch.load(meta_path, map_location="cpu", mmap=True, weights_only=False)
+
+        self.n_predicts = int(meta["n_predicts"])
+        self.n_states = int(meta["num_states"])
+        self.shard_size = int(meta["shard_size"])
+
+        self.sam = WordGroupAwareSAM(n_predicts=self.n_predicts)
+
+        self.sam.input_ids = meta["input_ids"]
+        self.sam.word_boundaries = meta["word_boundaries"]
+        self.sam.last = int(meta["last"])
+        self.sam.max_length = int(meta["max_length"])
+
+
+        self.sam.get_state = self.get_state
+        self.sam.n_states = self.n_states
+
+        self.shards = sorted([
+            os.path.join(shard_dir, f)
+            for f in os.listdir(shard_dir)
+            if re.match(r"sam_states_\d+\.pt", f)
+        ])
+
+        self.loaded_shard_id = None
+        self.loaded = None
+
+    def _load_shard(self, shard_id):
+
+        if shard_id == self.loaded_shard_id:
+            return
+        obj = torch.load(
+            self.shards[shard_id],
+            map_location="cpu",
+            mmap=True,
+            weights_only=False
+        )
+        self.loaded = obj
+        self.loaded_shard_id = shard_id
+
+    def get_state(self, index):
+
+        shard_id = index // self.shard_size
+        offset   = index % self.shard_size
+
+        self._load_shard(shard_id)
+
+        return WordGroupAwareSAM.SAMState(
+            next=self.loaded["transitions"][offset],
+            link=int(self.loaded["links"][offset]),
+            length=int(self.loaded["lengths"][offset]),
+            min_endpos=int(self.loaded["min_endpos"][offset]),
+        )
 
 
 class WordGroupAwareDraftModel(DraftModel):
-    """Draft model that is aware of word-group static SAM and reports seqtype."""
-
     def __init__(
         self,
         config,
@@ -88,9 +134,10 @@ class WordGroupAwareDraftModel(DraftModel):
         disable_dyn: bool = False,
         disable_eagle: bool = False,
     ):
-        from samd.sam import DynSAM
+        from samd.sam.wordgroup_dyn_sam import WordGroupAwareDynSAM
 
-        sam_dyn = DynSAM(config.n_predicts)
+        sam_dyn = WordGroupAwareDynSAM(config.n_predicts)
+
         self.disable_dyn = disable_dyn
         self.disable_eagle = disable_eagle
         self.tokenizer = tokenizer
@@ -106,10 +153,22 @@ class WordGroupAwareDraftModel(DraftModel):
 
     def update(self, tokens=None, last_hidden_states=None, tree_tokens=None, tree_logits=None):
         if tokens is not None:
-            tokens_list = tokens.tolist()
+            token_list = tokens.tolist()
+
+            text = self.tokenizer.decode(token_list, skip_special_tokens=True)
+
+            boundaries = boundaries_for_token_ids(
+                self.tokenizer,
+                text,
+                token_list
+            )
+
             if not self.disable_dyn:
-                self.sam_dyn.add_tokens(tokens_list)
-            self.sam_static.transfer_tokens(tokens_list)
+                self.sam_dyn.add_tokens(token_list, boundaries)
+
+            if self.sam_static is not None:
+                self.sam_static.transfer_tokens(token_list)
+
         if not self.disable_eagle:
             self.tree_model.update(
                 tokens=tokens,
@@ -117,6 +176,7 @@ class WordGroupAwareDraftModel(DraftModel):
                 tree_tokens=tree_tokens,
                 tree_logits=tree_logits,
             )
+
 
     def lookup(self, start_token: int, step: int = 0):
         counter = 0
@@ -141,7 +201,6 @@ class WordGroupAwareDraftModel(DraftModel):
                 seqtype = "static"
             return (CandidateType.sequence, seqtype, seq, {})
 
-        # fallback to tree/EAGLE
         tree_tokens, buffers_kwargs = self.tree_model.gen_draft(start_token)
         return (CandidateType.tree, "tree", tree_tokens, buffers_kwargs)
 
@@ -149,7 +208,9 @@ class WordGroupAwareDraftModel(DraftModel):
 def samd_generate(args, inputs, model, tokenizer):
     assert inputs.input_ids.shape[-1] + args.max_new_tokens <= args.max_cache_len
     if args.wordgroup_sam:
-        sam = load_wordgroup_sam(args.sam_path)
+        sharded = ShardedWordGroupSAM(args.sam_path)
+        sam = sharded.sam
+        sam.get_state = sharded.get_state
     else:
         sam = load_sam(args.sam_path) if args.sam_path is not None else None
 
@@ -180,7 +241,7 @@ def samd_generate(args, inputs, model, tokenizer):
             dtype=args.dtype,
             device=args.device
         )
-
+        
     samd_model = SamdModel(
         samd_config, 
         model, 
@@ -208,7 +269,6 @@ def user(current_text, chatbot, session_state):
     pure_history.append([current_text, None])
     session_state["pure_history"] = pure_history
 
-    # 🔹 Append user message + empty assistant message
     chatbot.append({"role": "user", "content": current_text})
     chatbot.append({"role": "assistant", "content": ""})
 
@@ -217,7 +277,7 @@ def user(current_text, chatbot, session_state):
 def clear(history, session):
     pure_history = []
     session["pure_history"] = pure_history
-    history = []   # 🔹 chatbot message list becomes empty
+    history = []   
     return history, session
 
 def regenerate(history, session_state):
@@ -228,12 +288,9 @@ def regenerate(history, session_state):
     if not pure_history or not history:
         return history, session_state
 
-    # 🔹 Clear last response in pure_history
     pure_history[-1][1] = None
     session_state["pure_history"] = pure_history
 
-    # 🔹 Clear last assistant message's content
-    # In our pattern, the last message should be assistant
     last_msg = history[-1]
     if isinstance(last_msg, dict) and last_msg.get("role") == "assistant":
         last_msg["content"] = ""

@@ -237,7 +237,6 @@ class SamdModel(nn.Module):
         last_hidden_states: Optional[torch.Tensor] = candidate_last_hidden_states.apply(
             lambda x: x[best_candidate][:accept_length]
         ).data
-        
         self.draft.update(
             tokens=tokens, 
             last_hidden_states=last_hidden_states,
@@ -312,7 +311,6 @@ class SamdModel(nn.Module):
         input_ids_list = [input_ids_list[:input_length + generation_config.max_new_tokens]]
         return Outputs(input_ids_list, decode_tokens, decode_steps, accepet_length_per_step)
     
-    #Zoho Labs Kottarakara: Modified stream_generate
     @torch.inference_mode()
     def stream_generate(self,
         input_ids: torch.Tensor,

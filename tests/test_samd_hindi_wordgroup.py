@@ -1,7 +1,4 @@
-"""
-Inference script for word-group-aware SAM with Hindi text.
-This ensures predictions stop at word group boundaries.
-"""
+
 import os
 import sys
 import argparse
@@ -12,7 +9,6 @@ import csv
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-# Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -22,9 +18,7 @@ from samd.sam import DynSAM
 
 
 class WordGroupAwareDraftModel(DraftModel):
-    """
-    Draft model that respects word group boundaries during inference.
-    """
+
     
     def __init__(
         self,
@@ -37,16 +31,13 @@ class WordGroupAwareDraftModel(DraftModel):
         disable_dyn: bool = False,
         disable_eagle: bool = False,
     ):
-        """Initialize with optional ability to disable dynamic or tree drafting."""
-        # Create original dynamic SAM (no word-group awareness needed here)
+
         sam_dyn = DynSAM(config.n_predicts)
         self.disable_dyn = disable_dyn
         self.disable_eagle = disable_eagle
         
-        # Store tokenizer for decoding
         self.tokenizer = tokenizer
         
-        # Initialize statistics
         self.static_sam_accepts = 0
         self.dynamic_sam_accepts = 0
         self.eagle_accepts = 0
@@ -73,7 +64,6 @@ class WordGroupAwareDraftModel(DraftModel):
         self._last_method: Optional[str] = None
         self._last_generated_tokens: int = 0
         
-        # Call parent init
         super().__init__(
             config=config,
             sam_dyn=sam_dyn,
@@ -84,19 +74,17 @@ class WordGroupAwareDraftModel(DraftModel):
         )
     
     def update(self, tokens=None, last_hidden_states=None, tree_tokens=None, tree_logits=None):
-        """Update SAMs with accepted tokens."""
         if tokens is not None:
             tokens_list = tokens.tolist()
             if self.tokenizer:
-                # Decode each token individually for better visibility
                 decoded_tokens = [self.tokenizer.decode([t], skip_special_tokens=True) for t in tokens_list]
                 decoded_text = self.tokenizer.decode(tokens_list, skip_special_tokens=True)
-                print(f"\n  📝 Updating with {len(tokens_list)} accepted tokens:")
-                print(f"     Tokens: {tokens_list}")
-                print(f"     Decoded: {decoded_tokens}")
-                print(f"     Combined: '{decoded_text}'")
+                print(f"\nUpdating with {len(tokens_list)} accepted tokens:")
+                print(f"Tokens: {tokens_list}")
+                print(f"Decoded: {decoded_tokens}")
+                print(f"Combined: '{decoded_text}'")
             else:
-                print(f"\n  📝 Updating Dynamic SAM with {len(tokens_list)} accepted tokens: {tokens_list}")
+                print(f"\nUpdating Dynamic SAM with {len(tokens_list)} accepted tokens: {tokens_list}")
             if not self.disable_dyn:
                 self.sam_dyn.add_tokens(tokens_list)
             self.sam_static.transfer_tokens(tokens_list)
@@ -116,32 +104,24 @@ class WordGroupAwareDraftModel(DraftModel):
             )
     
     def lookup(self, start_token: int, step: int = 0):
-        """
-        Lookup draft tokens, respecting word boundaries, and return the seqtype
-        so upstream streaming/colour-coding can distinguish token sources.
-        """
-        print(f"\n  🔍 Lookup for token {start_token}")
+        print(f"\n Lookup for token {start_token}")
 
-        # Decode start token if tokenizer available
         if self.tokenizer:
             start_text = self.tokenizer.decode([start_token], skip_special_tokens=True)
-            print(f"    📝 Start token: {start_token} → '{start_text}'")
+            print(f"Start token: {start_token} → '{start_text}'")
         
-        # Check dynamic SAM first (if enabled)
         counter = 0
         if not self.disable_dyn:
             index_dyn, match_dyn, counter = self.sam_dyn.lookup(start_token, step, counter)
-            print(f"    🔄 Dynamic SAM: index={index_dyn}, match_length={match_dyn}")
+            print(f"Dynamic SAM: index={index_dyn}, match_length={match_dyn}")
         else:
             index_dyn, match_dyn = -1, float('-inf')
-            print("    🔄 Dynamic SAM disabled")
+            print("Dynamic SAM disabled")
         
-        # Check static SAM (word-group-aware)
         index_static, match_static, counter = self.sam_static.lookup(start_token, step, counter)
         match_static -= self.len_bias
-        print(f"    📚 Static SAM: index={index_static}, match_length={match_static} (after bias)")
+        print(f"Static SAM: index={index_static}, match_length={match_static} (after bias)")
         
-        # Decide which SAM to use
         best_match = max(match_dyn, match_static)
         threshold_met = best_match >= self.len_threshold
 
@@ -151,14 +131,13 @@ class WordGroupAwareDraftModel(DraftModel):
             use_dynamic = (not self.disable_dyn) and (match_dyn >= match_static)
 
             if use_dynamic:
-                print(f"    ✅ Using DYNAMIC SAM (match_dyn={match_dyn} >= match_static={match_static})")
+                print(f"Using DYNAMIC SAM (match_dyn={match_dyn} >= match_static={match_static})")
                 self.dynamic_sam_accepts += 1
                 seq = self.sam_dyn.gen_draft(index_dyn, start_token)
                 chosen_method = "dynamic"
             else:
-                print(f"    ✅ Using STATIC SAM (match_static={match_static} {'>=' if match_static >= match_dyn else '<'} match_dyn={match_dyn})")
+                print(f"Using STATIC SAM (match_static={match_static} {'>=' if match_static >= match_dyn else '<'} match_dyn={match_dyn})")
                 self.static_sam_accepts += 1
-                # Use word-group-aware gen_draft from static SAM
                 seq = self.sam_static.gen_draft(index_static, start_token)
                 chosen_method = "static"
             generated_len = len([t for t in seq if t != 0])
@@ -168,30 +147,26 @@ class WordGroupAwareDraftModel(DraftModel):
             self._last_method = chosen_method
             self._last_generated_tokens = generated_len
             
-            # Decode and print the draft with individual tokens
             if self.tokenizer:
-                # Filter out padding tokens (0) for better display
                 non_zero_seq = [t for t in seq if t != 0]
                 draft_tokens_decoded = [self.tokenizer.decode([t], skip_special_tokens=True) for t in non_zero_seq]
                 draft_text = self.tokenizer.decode(non_zero_seq, skip_special_tokens=True)
-                print(f"    📄 Draft: {len(non_zero_seq)} tokens")
-                print(f"       Token IDs: {non_zero_seq}")
-                print(f"       Decoded tokens: {draft_tokens_decoded}")
-                print(f"       Combined text: '{draft_text}'")
+                print(f"Draft: {len(non_zero_seq)} tokens")
+                print(f"Token IDs: {non_zero_seq}")
+                print(f"Decoded tokens: {draft_tokens_decoded}")
+                print(f"Combined text: '{draft_text}'")
             
             return (CandidateType.sequence, chosen_method, seq, {})
         else:
             if self.disable_eagle:
-                # Should not reach here because condition above handles disable_eagle
-                print("    ⚠️  Tree model disabled; resorting to STATIC SAM despite threshold miss")
+                print("Tree model disabled; resorting to STATIC SAM despite threshold miss")
                 from samd.draft import CandidateType
                 self.static_sam_accepts += 1
                 seq = self.sam_static.gen_draft(index_static, start_token)
                 return (CandidateType.sequence, "static", seq, {})
 
-            print(f"    ⚠️  Neither SAM meets threshold (best={best_match} < {self.len_threshold}), using TREE/EAGLE model")
+            print(f" Neither SAM meets threshold (best={best_match} < {self.len_threshold}), using TREE/EAGLE model")
             self.eagle_accepts += 1
-            # Fall back to tree model
             from samd.draft import CandidateType
             tree_tokens, buffers_kwargs = self.tree_model.gen_draft(start_token)
             tree_len = len(tree_tokens)
@@ -204,7 +179,6 @@ class WordGroupAwareDraftModel(DraftModel):
 
 
 def load_wordgroup_sam(path: str):
-    """Load word-group-aware SAM from pickle file."""
     print(f"Loading word-group-aware SAM from {path}...")
     start = time.perf_counter()
     
@@ -238,7 +212,7 @@ def parse_args():
     parser.add_argument(
         '--model_path', 
         type=str, 
-        default="/nfs/kundeshwar/pranav-shinde/download/Airavata",
+        default=" ",
         help='Path to the language model'
     )
     parser.add_argument(
@@ -275,7 +249,7 @@ def parse_args():
     parser.add_argument(
         "--tree_model_path", 
         type=str, 
-        default="/nfs/kundeshwar/pranav-shinde/SAM-Decoding/downloads/airavata_bs1/state_20",
+        default=" ",
         help='Path to tree model (if using eagle2)'
     )
     parser.add_argument(
@@ -345,12 +319,9 @@ def parse_args():
 
 @torch.inference_mode()
 def samd_generate_wordgroup(args, inputs, model, tokenizer, sam):
-    """
-    Generate text using word-group-aware SAM.
-    """
+
     from samd.sam import DynSAM
     
-    # Create configuration
     samd_config = SamdConfig(
         n_predicts=args.samd_n_predicts,
         tree_method=args.tree_method,
@@ -359,7 +330,6 @@ def samd_generate_wordgroup(args, inputs, model, tokenizer, sam):
         len_bias=args.len_bias,
     )
     
-    # Create word-group-aware draft model
     draft = WordGroupAwareDraftModel(
         samd_config,
         sam_static=sam,
@@ -371,7 +341,6 @@ def samd_generate_wordgroup(args, inputs, model, tokenizer, sam):
         disable_eagle=args.disable_eagle,
     )
     
-    # Create SAMD model
     samd_model = SamdModel(
         samd_config,
         model,
@@ -382,7 +351,6 @@ def samd_generate_wordgroup(args, inputs, model, tokenizer, sam):
     )
     samd_model.eval()
     
-    # Generation configuration
     gen_config = SamdGenerationConfig(
         max_new_tokens=args.max_new_tokens,
         max_cache_len=args.max_cache_len,
@@ -398,10 +366,8 @@ def samd_generate_wordgroup(args, inputs, model, tokenizer, sam):
     outputs = samd_model.generate(**inputs, generation_config=gen_config)
     ed = time.perf_counter()
     
-    # Decode response
     response = tokenizer.decode(outputs.output_ids[0], skip_special_tokens=True)
     
-    # Print results
     print("\n" + "-"*80)
     print("RESULTS")
     print("-"*80)
@@ -418,15 +384,14 @@ def samd_generate_wordgroup(args, inputs, model, tokenizer, sam):
     print(f"Average accept length per step: {avg_accept_length:.2f}")
     print(f"\nAccept lengths per step: {outputs.accepet_length_per_step}")
     
-    # Print acceptance statistics
     print("\n" + "="*80)
     print("ACCEPTANCE STATISTICS")
     print("="*80)
     total_lookups = draft.static_sam_accepts + draft.dynamic_sam_accepts + draft.eagle_accepts
-    print(f"📊 Static SAM accepted:  {draft.static_sam_accepts:3d} times ({draft.static_sam_accepts/total_lookups*100:5.1f}%)")
-    print(f"📊 Dynamic SAM accepted: {draft.dynamic_sam_accepts:3d} times ({draft.dynamic_sam_accepts/total_lookups*100:5.1f}%)")
-    print(f"📊 EAGLE accepted:       {draft.eagle_accepts:3d} times ({draft.eagle_accepts/total_lookups*100:5.1f}%)")
-    print(f"📊 Total lookups:        {total_lookups:3d}")
+    print(f"{draft.static_sam_accepts:3d} times ({draft.static_sam_accepts/total_lookups*100:5.1f}%)")
+    print(f"{draft.dynamic_sam_accepts:3d} times ({draft.dynamic_sam_accepts/total_lookups*100:5.1f}%)")
+    print(f"{draft.eagle_accepts:3d} times ({draft.eagle_accepts/total_lookups*100:5.1f}%)")
+    print(f"{total_lookups:3d}")
     print("="*80)
     
     print("\n" + "-"*80)
@@ -447,9 +412,7 @@ def samd_generate_wordgroup(args, inputs, model, tokenizer, sam):
 
 @torch.inference_mode()
 def baseline_generate(args, inputs, model, tokenizer):
-    """
-    Baseline generation without SAM for comparison.
-    """
+
     model.eval()
     
     from samd import SamdGenerationConfig
@@ -599,7 +562,6 @@ def append_results_row(csv_path: str, row: Dict[str, Any]):
 def main():
     args = parse_args()
     
-    # Load tokenizer and model
     print(f"Loading model from {args.model_path}...")
     tokenizer = AutoTokenizer.from_pretrained(args.model_path, trust_remote_code=True)
     
@@ -618,7 +580,6 @@ def main():
     print(f"  EOS token: {tokenizer.eos_token} (ID: {tokenizer.eos_token_id})")
     print(f"  Vocab size: {len(tokenizer)}")
     
-    # Load word-group-aware SAM
     if args.sam_path and os.path.exists(args.sam_path):
         sam = load_wordgroup_sam(args.sam_path)
     else:
@@ -626,11 +587,9 @@ def main():
         print("Proceeding without static SAM (will use dynamic SAM only)")
         sam = None
     
-    # Prepare prompt
     if args.prompt:
         prompt = args.prompt
     else:
-        # Default Hindi test prompt
         prompt = "हिंदुस्तानी शास्त्रीय संगीत"
     
     print(f"\n{'='*80}")
@@ -639,7 +598,6 @@ def main():
     print(prompt)
     print(f"{'='*80}\n")
     
-    # Tokenize input
     inputs = tokenizer(
         [prompt],
         padding=True,
@@ -654,12 +612,8 @@ def main():
     else:
         print("Skipping baseline generation (speedup will be 0)")
     
-    # Run word-group-aware SAM generation
     if sam is not None:
         samd_metrics = samd_generate_wordgroup(args, inputs, model, tokenizer, sam)
-        # row = build_results_row(args, prompt, samd_metrics, baseline_metrics)
-        # append_results_row(args.results_csv, row)
-        # print(f"\n📈 Appended run statistics to {args.results_csv}")
     else:
         print("Skipping SAM generation (no SAM loaded)")
 
