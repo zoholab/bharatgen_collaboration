@@ -35,6 +35,7 @@ E_ENDING = "े"
 AUX_AFTER_EE = {"गई","जाएगी","जायेगी"}
 AUX_AFTER_A = {"गया","जाएगा","जायेगा"}
 
+#-------------------------
 
 def apply_phrase_grouping(tokens: List[str]) -> List[str]:
     out = []
@@ -58,6 +59,7 @@ def apply_phrase_grouping(tokens: List[str]) -> List[str]:
 
         w = tokens[i]
 
+        # endings + auxiliaries
         if w.endswith(EE_ENDING) and i+1<n and tokens[i+1] in AUX_AFTER_EE:
             out.append(w+"##"+tokens[i+1]); i+=2; continue
 
@@ -107,6 +109,7 @@ def apply_left_attachment(tokens: List[str]) -> List[str]:
     return out
 
 
+# ---------------- WORD-LEVEL GROUPS ----------------
 
 def group_sentence_to_word_groups(words: List[str]) -> List[Tuple[str, bool]]:
     grouped_words = apply_phrase_grouping(words)
@@ -132,6 +135,7 @@ def word_groups_to_token_boundaries(tokenizer, cleaned_text: str, tokens: List[i
         return boundaries
     
     try:
+        # Try to use offset mapping for precise alignment
         full_encoding = tokenizer(cleaned_text, return_offsets_mapping=True, add_special_tokens=True)
         
         if 'offset_mapping' in full_encoding and len(full_encoding['input_ids']) == len(tokens):
@@ -149,35 +153,42 @@ def create_boundaries_with_offsets(tokens: List[int], tokenizer, word_groups: Li
     
     boundaries = [False] * len(tokens)
     
+    # Find character positions where each word ends in the cleaned text
     word_end_positions = []
     char_pos = 0
     
     for word, is_group_end in word_groups:
         word = word.strip()
         
+        # Find this word in the cleaned text starting from current position
         word_start = cleaned_text.find(word, char_pos)
         if word_start != -1:
             word_end = word_start + len(word)
-            word_end_positions.append((word_end - 1, is_group_end))  
+            word_end_positions.append((word_end - 1, is_group_end))  # -1 to get last char of word
             char_pos = word_end
             
+            # Skip spaces to next word
             while char_pos < len(cleaned_text) and cleaned_text[char_pos] == ' ':
                 char_pos += 1
         else:
             print(f"Warning: Could not find word '{word}' in cleaned text")
     
+    # Mark boundaries based on which tokens contain the end of word groups
     for i, (start, end) in enumerate(offset_mapping):
         if i >= len(boundaries):
             break
             
+        # Skip special tokens (they typically have (0,0) offsets)
         if start == 0 and end == 0 and i > 0:
             continue
         
+        # Check if this token contains the end of any word group
         for word_end_pos, is_group_end in word_end_positions:
             if is_group_end and start <= word_end_pos < end:
                 boundaries[i] = True
                 break
     
+    # Ensure last meaningful token is marked as boundary
     last_meaningful_idx = len(boundaries) - 1
     while (last_meaningful_idx >= 0 and 
            last_meaningful_idx < len(tokens) and
@@ -191,17 +202,21 @@ def create_boundaries_with_offsets(tokens: List[int], tokenizer, word_groups: Li
 
 def create_boundaries_word_based(tokens: List[int], tokenizer, word_groups: List[Tuple[str, bool]], 
                                 cleaned_text: str) -> List[bool]:
-
+    """Create boundaries using improved word-based alignment (fallback method)."""
+    
     boundaries = [False] * len(tokens)
     
     if not word_groups:
         return boundaries
     
+    # Build word-to-group mapping
     words_with_boundaries = []
     for word, is_group_end in word_groups:
         words_with_boundaries.append((word.strip(), is_group_end))
     
+    # Try to align with tokens by decoding individual tokens
     try:
+        # Decode each token to understand the text structure
         token_texts = []
         for i, token_id in enumerate(tokens):
             if hasattr(tokenizer, 'bos_token_id') and token_id == tokenizer.bos_token_id:
@@ -217,11 +232,13 @@ def create_boundaries_word_based(tokens: List[int], tokenizer, word_groups: List
                 except:
                     token_texts.append("[UNK]")
         
+        # Reconstruct text and find word boundaries
         reconstructed_text = ""
         token_to_char_map = []
         
         for i, token_text in enumerate(token_texts):
             if token_text.startswith("[") and token_text.endswith("]"):
+                # Special token
                 token_to_char_map.append((len(reconstructed_text), len(reconstructed_text)))
             else:
                 start_pos = len(reconstructed_text)
@@ -229,24 +246,29 @@ def create_boundaries_word_based(tokens: List[int], tokenizer, word_groups: List
                 end_pos = len(reconstructed_text)
                 token_to_char_map.append((start_pos, end_pos))
         
+        # Find where each word ends in the reconstructed text
         char_pos = 0
         for word, is_group_end in words_with_boundaries:
+            # Find this word in reconstructed text
             word_start = reconstructed_text.find(word, char_pos)
             if word_start != -1:
-                word_end = word_start + len(word) - 1  
+                word_end = word_start + len(word) - 1  # Last character of word
                 
                 if is_group_end:
+                    # Find which token contains this character position
                     for i, (token_start, token_end) in enumerate(token_to_char_map):
                         if token_start <= word_end < token_end:
                             boundaries[i] = True
                             break
                 
                 char_pos = word_start + len(word)
+                # Skip spaces
                 while char_pos < len(reconstructed_text) and reconstructed_text[char_pos] == ' ':
                     char_pos += 1
         
     except Exception as e:
-
+        print(f"Warning: Word-based alignment failed ({e}), using simple distribution")
+        # Simple fallback: distribute boundaries evenly
         group_count = sum(1 for _, is_end in word_groups if is_end)
         if group_count > 0:
             tokens_per_group = len(tokens) / group_count
@@ -255,6 +277,7 @@ def create_boundaries_word_based(tokens: List[int], tokenizer, word_groups: List
                 if boundary_pos >= 0:
                     boundaries[boundary_pos] = True
     
+    # Always mark the last meaningful token as boundary
     last_meaningful_idx = len(boundaries) - 1
     while (last_meaningful_idx >= 0 and 
            last_meaningful_idx < len(tokens) and
