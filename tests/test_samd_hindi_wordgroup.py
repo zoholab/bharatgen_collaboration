@@ -358,9 +358,6 @@ def samd_generate_wordgroup(args, inputs, model, tokenizer, sam):
         temperature=0.0
     )
     
-    print("\n" + "="*80)
-    print("Starting generation with word-group-aware SAM...")
-    print("="*80)
     
     st = time.perf_counter()
     outputs = samd_model.generate(**inputs, generation_config=gen_config)

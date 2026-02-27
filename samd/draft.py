@@ -11,6 +11,8 @@ from transformers import AutoTokenizer
 
 from profile_utils import profile_decorator, profile_lookup_decorator
 
+# from transformers import LlamaTokenizer
+# tokenizer: LlamaTokenizer = LlamaTokenizer.from_pretrained('/data/models/vicuna-7b-v1.3')
 
 class CandidateType(str, Enum):
     sequence = "sequence"
