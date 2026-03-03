@@ -176,6 +176,14 @@ class SamdModel(nn.Module):
         best_candidate, accept_length, sample_p \
             = eval_posterior(candidate_logits, candidates.candidate_tokens, self.gen_config)#Provided the tokens from the inp+draft
 
+        n_draft = candidates.n_draft
+        if candidates.type == CandidateType.tree and candidate_indices.data is not None:
+            # For tree/EAGLE, count proposed tokens only on the selected branch.
+            # retrieve_indices use -1 as padding/sentinel.
+            selected_retrieve = candidate_indices.data[best_candidate]
+            valid_count = int((selected_retrieve != -1).sum().item())
+            n_draft = max(0, valid_count - 1)
+
         new_tokens = self.update_state(
             input_ids.squeeze(0),
             tree_logits.squeeze(0),
@@ -187,7 +195,7 @@ class SamdModel(nn.Module):
         )
 
         # print("new_tokens:\n{}".format(new_tokens))
-        return sample_p, new_tokens, candidates.seqtype
+        return sample_p, new_tokens, candidates.seqtype, n_draft
 
     # @profile_decorator("SamdModel.update_state")
     def update_state(self,
@@ -261,7 +269,7 @@ class SamdModel(nn.Module):
         for step in range(generation_config.max_new_tokens):#Generate until max new tokens
             if input_length + decode_tokens + self.samd_config.max_predicts >= generation_config.max_cache_len:
                 break
-            sample_p, new_ids ,seqtype= self.decode(sample_p, input_length + decode_tokens,step)#sample_p is the prob distribution
+            sample_p, new_ids ,seqtype, _ = self.decode(sample_p, input_length + decode_tokens,step)#sample_p is the prob distribution
 
             eos_index = None
             if self.eos_token in new_ids:
@@ -309,7 +317,7 @@ class SamdModel(nn.Module):
         for step in range(generation_config.max_steps):
             if input_length + decode_tokens + self.samd_config.max_predicts >= generation_config.max_cache_len:
                 break
-            sample_p, new_ids,seqtype = self.decode(sample_p, input_length + decode_tokens,step)
+            sample_p, new_ids,seqtype, n_draft = self.decode(sample_p, input_length + decode_tokens,step)
             eos_index = None
             if self.eos_token in new_ids:
                 eos_index = new_ids.index(self.eos_token)
@@ -325,7 +333,7 @@ class SamdModel(nn.Module):
             # Yield only new characters
             new_text = full_ids[streamed_len:]
             if new_text:
-                yield {"ids": new_text,"seqtype":seqtype}
+                yield {"ids": new_text, "seqtype": seqtype, "n_draft": n_draft}
                 streamed_len += len(new_text)
 
             if eos_index is not None:

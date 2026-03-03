@@ -18,7 +18,7 @@ class CandidateType(str, Enum):
     sequence = "sequence"
     tree = "tree"
 
-Candidates = namedtuple('Candidates', ['type','seqtype', 'tokens', 'candidate_tokens', 'buffers_kwargs'])
+Candidates = namedtuple('Candidates', ['type','seqtype', 'tokens', 'candidate_tokens', 'buffers_kwargs', 'n_draft'])
 
 TOPK = 8
 
@@ -60,15 +60,17 @@ class DraftModel(torch.nn.Module):
         #The match length of the static and dynamic are being compared 
         if max(match_dyn, match_static) >= self.len_threshold:
             if match_dyn >= match_static:
-                seq = self.sam_dyn.gen_draft(index_dyn, start_token)
+                seq, n_draft = self.sam_dyn.gen_draft(index_dyn, start_token)
                 seqtype="dynamic"
             else:
-                seq = self.sam_static.gen_draft(index_static, start_token)
+                seq, n_draft = self.sam_static.gen_draft(index_static, start_token)
                 seqtype="static"
-            return (CandidateType.sequence,seqtype, seq, {})
+            return (CandidateType.sequence,seqtype, seq, {}, n_draft)
         else:
             seqtype="tree"
-            return (CandidateType.tree,seqtype) + self.tree_model.gen_draft(start_token)
+            tree_tokens, buffers_kwargs = self.tree_model.gen_draft(start_token)
+            n_draft = len(tree_tokens) - 1
+            return (CandidateType.tree, seqtype, tree_tokens, buffers_kwargs, n_draft)
     
     def update(self,
         tokens: Optional[torch.Tensor] = None,

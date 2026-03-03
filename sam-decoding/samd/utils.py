@@ -93,7 +93,7 @@ def gen_candidates(
     else:
         start_token = torch.multinomial(sample_p, 1).item()
     
-    candidate_type,seqtype, tokens, buffers_kwargs = draft.lookup(start_token,step)
+    candidate_type,seqtype, tokens, buffers_kwargs, n_draft = draft.lookup(start_token,step)
     
     tree_retrieve_indices = buffers_kwargs.get("tree_retrieve_indices", tree_retrieve_indices)
     if candidate_type == CandidateType.sequence:
@@ -109,6 +109,7 @@ def gen_candidates(
         tokens,
         candidate_tokens,
         buffers_kwargs,
+        n_draft,
     )
 
 

@@ -147,10 +147,12 @@ class DynSAM:
         index = self.to_anc(index)
         endpos = self.states[index].min_endpos
         predicted_token=self.input_ids[endpos]
-        pred_ids = [start_token] + self.input_ids[endpos + 1:endpos + self.n_predicts]
+        draft_tokens = self.input_ids[endpos + 1:endpos + self.n_predicts]
+        pred_ids = [start_token] + draft_tokens
         if len(pred_ids) < self.n_predicts:
             pred_ids.extend([0] * (self.n_predicts - len(pred_ids)))
-        return pred_ids
+        n_draft = len(draft_tokens)
+        return pred_ids, n_draft
     
     #Zoho Labs Kottarakara:Visualize the dfa transitions for Dynamic-SAM
 

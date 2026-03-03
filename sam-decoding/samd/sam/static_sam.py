@@ -153,10 +153,12 @@ class StaticSAM:
     def gen_draft(self, index: int, start_token: int):
         # index = self.to_anc(index)
         endpos = self.states[index].min_endpos
-        pred_ids = [start_token] + self.input_ids[endpos + 1:endpos + self.n_predicts]
+        draft_tokens = self.input_ids[endpos + 1:endpos + self.n_predicts]
+        pred_ids = [start_token] + draft_tokens
         if len(pred_ids) < self.n_predicts:
             pred_ids.extend([0] * (self.n_predicts - len(pred_ids)))
-        return pred_ids
+        n_draft = len(draft_tokens)
+        return pred_ids, n_draft
     
     def dfa_next_graph(self,index,token,step):
         current_index=index
@@ -247,4 +249,5 @@ class NullStaticSAM(StaticSAM):
         pass
     
     def gen_draft(self, index, start_token):
-        return -1, -1
+        pred_ids = [start_token] + [0] * (self.n_predicts - 1)
+        return pred_ids, 0
